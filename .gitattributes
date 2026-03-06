@@ -1,0 +1,8 @@
+* text=auto
+
+# Keep Gradle wrapper scripts runnable in Linux containers.
+**/gradlew text eol=lf
+**/gradlew.bat text eol=crlf
+
+# Common shell scripts
+**/*.sh text eol=lf

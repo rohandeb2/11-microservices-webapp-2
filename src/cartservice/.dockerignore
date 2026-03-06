@@ -1,0 +1,40 @@
+# ==========================================
+# 1. .NET Specific Build Artifacts
+# ==========================================
+[bB]in/
+[oO]bj/
+out/
+publish/
+
+# ==========================================
+# 2. Version Control & Global Ignores
+# ==========================================
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+*.md
+LICENSE
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# 3. Environment & Security (CRITICAL)
+# ==========================================
+.env
+.env.*
+*.pem
+*.key
+appsettings.Development.json
+appsettings.Local.json
+
+# ==========================================
+# 4. Infrastructure & Testing Artifacts
+# ==========================================
+.terraform/
+*.tfstate*
+TestResults/
+*.user
+*.suo
+*.sln.docstates

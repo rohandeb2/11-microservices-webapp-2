@@ -1,0 +1,68 @@
+
+# Git
+.git
+.gitignore
+
+# Gradle
+.gradle/
+build/
+out/
+
+# Keep only final jar
+!build/libs/*.jar
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Tests
+src/test/
+
+# Documentation
+README.md
+=======
+# Git
+.git
+.gitignore
+
+# Gradle
+.gradle/
+build/
+out/
+
+# Keep only final jar
+!build/libs/*.jar
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Tests
+src/test/
+
+# Documentation
+README.md

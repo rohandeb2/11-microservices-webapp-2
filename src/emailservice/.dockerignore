@@ -1,0 +1,53 @@
+# ==========================================
+# 1. Python Specific (Critical)
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+# Exclude local virtual environments
+venv/
+.venv/
+env/
+# Exclude local packaging artifacts
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.tox/
+.coverage
+
+# ==========================================
+# 2. Version Control & Documentation
+# ==========================================
+.git
+.gitignore
+.dockerignore
+*.md
+LICENSE
+
+# ==========================================
+# 3. Environment & Security (CRITICAL)
+# ==========================================
+.env
+.env.*
+*.pem
+*.key
+
+# ==========================================
+# 4. IDE & OS Junk
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# 5. Infrastructure Artifacts
+# ==========================================
+.terraform/
+*.tfstate*
+kubernetes-files/
+# Exclude the proto generation script after it runs in CI
+genproto.sh

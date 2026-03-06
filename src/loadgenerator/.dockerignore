@@ -1,0 +1,56 @@
+# ==========================================
+# 1. Python Specific (Critical)
+# ==========================================
+# Exclude Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.tox/
+
+# Exclude local virtual environments (Mandatory)
+venv/
+.venv/
+env/
+
+# Exclude local packaging/distribution artifacts
+dist/
+build/
+*.egg-info/
+
+# ==========================================
+# 2. Version Control & Documentation
+# ==========================================
+.git
+.gitignore
+.dockerignore
+*.md
+LICENSE
+
+# ==========================================
+# 3. Environment & Security (CRITICAL)
+# ==========================================
+# Prevent leaking local secrets into ECR
+.env
+.env.*
+*.pem
+*.key
+
+# ==========================================
+# 4. IDE & OS Junk
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# 5. Infrastructure & CI/CD
+# ==========================================
+# Exclude infrastructure manifests from the app image context
+kubernetes-files/
+.terraform/
+*.tfstate*
+eks-terraform/
+ecr-terraform/

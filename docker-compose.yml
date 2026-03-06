@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # --- INFRASTRUCTURE COMPONENT ---
+  redis-cart:
+    image: "redis:alpine"
+    container_name: redis-cart
+    ports:
+      - "6379:6379"
+    networks:
+      - boutique-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- CORE SERVICES ---
+  frontend:
+    build:
+      context: ./src/frontend
+    container_name: frontend
+    ports:
+      - "8085:8080"
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+      - RECOMMENDATION_SERVICE_ADDR=recommendationservice:8080
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - CHECKOUT_SERVICE_ADDR=checkoutservice:5050
+      - AD_SERVICE_ADDR=adservice:9555
+    networks:
+      - boutique-network
+    depends_on:
+      - productcatalogservice
+      - checkoutservice
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  cartservice:
+    build:
+      context: ./src/cartservice
+    environment:
+      - REDIS_ADDR=redis-cart:6379
+      - PORT=7070
+    networks:
+      - boutique-network
+    depends_on:
+      redis-cart:
+        condition: service_healthy
+
+  productcatalogservice:
+    build: ./src/productcatalogservice
+    environment:
+      - PORT=3550
+    networks:
+      - boutique-network
+
+  currencyservice:
+    build: ./src/currencyservice
+    environment:
+      - PORT=7000
+      - DISABLE_PROFILER=1
+      - DISABLE_TRACING=1
+    networks:
+      - boutique-network
+
+  paymentservice:
+    build: ./src/paymentservice
+    environment:
+      - PORT=50051
+      - DISABLE_PROFILER=1
+      - DISABLE_TRACING=1
+    networks:
+      - boutique-network
+
+  shippingservice:
+    build: ./src/shippingservice
+    environment:
+      - PORT=50051
+    networks:
+      - boutique-network
+
+  checkoutservice:
+    build: ./src/checkoutservice
+    environment:
+      - PORT=5050
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - PAYMENT_SERVICE_ADDR=paymentservice:50051
+      - EMAIL_SERVICE_ADDR=emailservice:8080
+    networks:
+      - boutique-network
+    depends_on:
+      - paymentservice
+      - shippingservice
+
+  recommendationservice:
+    build: ./src/recommendationservice
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+    networks:
+      - boutique-network
+
+  adservice:
+    build: ./src/adservice
+    environment:
+      - PORT=9555
+      - DISABLE_PROFILER=1
+    networks:
+      - boutique-network
+
+  emailservice:
+    build: ./src/emailservice
+    environment:
+      - PORT=8080
+    networks:
+      - boutique-network
+
+  # --- TOOLS (Only runs when requested) ---
+  loadgenerator:
+    build: ./src/loadgenerator
+    environment:
+      - FRONTEND_ADDR=frontend:8080
+      - USERS=10
+    networks:
+      - boutique-network
+    depends_on:
+      - frontend
+    profiles:
+      - tools
+
+networks:
+  boutique-network:
+    driver: bridge

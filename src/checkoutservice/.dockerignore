@@ -1,0 +1,46 @@
+# ==========================================
+# 1. Go Specific Build Artifacts
+# ==========================================
+# Exclude local compiled binaries and object files
+bin/
+obj/
+# Exclude vendor directory if you use 'go mod download' in Dockerfile
+vendor/
+
+# ==========================================
+# 2. Testing and Documentation
+# ==========================================
+# Tests are for CI, not for the production image
+*_test.go
+# Exclude documentation to keep context slim
+README.md
+*.md
+
+# ==========================================
+# 3. Version Control & Global Ignores
+# ==========================================
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# 4. Environment & Security (CRITICAL)
+# ==========================================
+# Prevent leaking local secrets into ECR
+.env
+.env.*
+*.pem
+*.key
+
+# ==========================================
+# 5. Infrastructure Artifacts
+# ==========================================
+# Exclude Terraform and Kubernetes files from the app image
+.terraform/
+*.tfstate*
+kubernetes-files/
+genproto.sh

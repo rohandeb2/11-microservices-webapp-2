@@ -1,0 +1,44 @@
+# ==========================================
+# 1. Node.js Specific (Critical)
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# ==========================================
+# 2. Version Control & Documentation
+# ==========================================
+.git
+.gitignore
+.dockerignore
+*.md
+LICENSE
+
+# ==========================================
+# 3. Environment & Security
+# ==========================================
+.env
+.env.*
+*.pem
+*.key
+
+# ==========================================
+# 4. IDE & OS Junk
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# 5. Infrastructure & Build Artifacts
+# ==========================================
+.terraform/
+*.tfstate*
+kubernetes-files/
+dist/
+# Exclude the proto generation script after it runs in CI
+genproto.sh
