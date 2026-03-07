@@ -28,9 +28,11 @@ resources:
 # Standard hardening for EKS production workloads
 serviceAccount:
   create: true
-  automountToken: false
-  annotations: {}
-
+  # Force this name so SecretStore can find it
+  name: "boutique-admin-sa" 
+  annotations:
+    # Ensure this IAM Role has SecretsManager access
+    eks.amazonaws.com/role-arn: "arn:aws:iam::889501007925:role/boutique-secrets-manager-role"
 # --- Default Autoscaling Logic ---
 # Logic for your hpa.yaml template
 autoscaling:
@@ -62,3 +64,7 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+containerPort: 8080
+# Fix for the NOTES.txt nil pointer error
+httpRoute:
+  enabled: false

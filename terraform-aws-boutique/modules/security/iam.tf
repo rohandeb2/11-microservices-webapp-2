@@ -10,9 +10,14 @@ data "aws_iam_policy_document" "eks_oidc_assume_role_policy" {
     condition {
       test     = "StringEquals"
       variable = "${replace(var.eks_oidc_issuer_url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:default:boutique-app-sa"]
+      values   = ["system:serviceaccount:boutique-app:boutique-admin-sa"]
     }
-
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.eks_oidc_issuer_url, "https://", "")}:aud"
+      # Standard practice for EKS IRSA
+      values   = ["sts.amazonaws.com"]
+    }
     principals {
       identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(var.eks_oidc_issuer_url, "https://", "")}"]
       type        = "Federated"
