@@ -32,6 +32,8 @@ resource "aws_iam_role" "microservice_role" {
 }
 
 # 3. Policy to allow access to KMS and Secrets Manager
+# --- modules/security/iam.tf ---
+
 resource "aws_iam_policy" "app_permissions" {
   name        = "${var.project_name}-app-permissions"
   description = "Permissions for microservices to access secrets and encryption"
@@ -53,7 +55,9 @@ resource "aws_iam_policy" "app_permissions" {
           "secretsmanager:DescribeSecret"
         ]
         Effect   = "Allow"
-        Resource = aws_secretsmanager_secret.main.arn
+        # CHANGE: Allow access to all secrets starting with 'boutique/'
+        # This matches your 'boutique/production/redis' request
+        Resource = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:boutique*"
       }
     ]
   })

@@ -18,7 +18,7 @@ resource "aws_secretsmanager_secret" "app_secrets" {
 resource "aws_secretsmanager_secret_version" "initial" {
   secret_id     = aws_secretsmanager_secret.app_secrets.id
   secret_string = jsonencode({
-    REDIS_PASSWORD = "change-me-manually-in-console"
+    REDIS_PASSWORD = "password"
     PAYMENT_GATEWAY_KEY = "placeholder"
   })
   

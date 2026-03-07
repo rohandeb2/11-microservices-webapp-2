@@ -37,4 +37,6 @@ autoscaling:
 # --- Security & Identity ---
 serviceAccount:
   create: true
-  automountToken: false
+  name: "boutique-admin-sa"
+  automountToken: true
+  
