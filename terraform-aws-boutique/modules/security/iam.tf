@@ -1,0 +1,60 @@
+# --- modules/security/iam.tf ---
+
+# 1. Get the EKS Cluster OIDC provider URL from the compute module
+# This data source allows IAM to trust the EKS cluster
+data "aws_iam_policy_document" "eks_oidc_assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.eks_oidc_issuer_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:default:boutique-app-sa"]
+    }
+
+    principals {
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(var.eks_oidc_issuer_url, "https://", "")}"]
+      type        = "Federated"
+    }
+  }
+}
+
+# 2. Dedicated IAM Role for Microservices
+resource "aws_iam_role" "microservice_role" {
+  name               = "${var.project_name}-microservice-role"
+  assume_role_policy = data.aws_iam_policy_document.eks_oidc_assume_role_policy.json
+}
+
+# 3. Policy to allow access to KMS and Secrets Manager
+resource "aws_iam_policy" "app_permissions" {
+  name        = "${var.project_name}-app-permissions"
+  description = "Permissions for microservices to access secrets and encryption"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+        ]
+        Effect   = "Allow"
+        Resource = aws_kms_key.main.arn
+      },
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Effect   = "Allow"
+        Resource = aws_secretsmanager_secret.main.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "app_attach" {
+  role       = aws_iam_role.microservice_role.name
+  policy_arn = aws_iam_policy.app_permissions.arn
+}
