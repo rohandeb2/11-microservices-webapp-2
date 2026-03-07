@@ -5,24 +5,28 @@ metadata:
   name: {{ include "k8s-boutique-chart.fullname" . }}
   labels:
     {{- include "k8s-boutique-chart.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-spec:
-  {{- with .Values.ingress.className }}
-  ingressClassName: {{ . }}
-  {{- end }}
-  {{- if .Values.ingress.tls }}
-  tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
+    # --- AWS ALB Specific Annotations ---
+    # Tells EKS to create an Application Load Balancer
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    
+    # --- SSL/TLS Configuration (Using your ACM Cert) ---
+    # Replace the ARN below with your actual ACM ARN from Terraform output
+    alb.ingress.kubernetes.io/certificate-arn: {{ .Values.ingress.annotations.certificateArn | default "arn:aws:acm:ap-south-1:889501007925:certificate/placeholder" }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    
+    # Custom annotations from your values.yaml
+    {{- with .Values.ingress.annotations }}
+    {{- range $key, $value := . }}
+    {{- if ne $key "certificateArn" }}
+    {{ $key }}: {{ $value | quote }}
     {{- end }}
-  {{- end }}
+    {{- end }}
+    {{- end }}
+spec:
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
@@ -30,14 +34,13 @@ spec:
         paths:
           {{- range .paths }}
           - path: {{ .path }}
-            {{- with .pathType }}
-            pathType: {{ . }}
-            {{- end }}
+            pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
-                name: {{ include "k8s-boutique-chart.fullname" $ }}
+                # Direct traffic specifically to the frontend service
+                name: frontend
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: 80
           {{- end }}
     {{- end }}
 {{- end }}

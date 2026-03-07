@@ -1,0 +1,41 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: boutique-cluster-reader
+  labels:
+    app.kubernetes.io/name: online-boutique
+    app.kubernetes.io/part-of: boutique-infrastructure
+    app.kubernetes.io/managed-by: helm
+    security.boutique.com/tier: monitoring
+spec:
+  rules:
+  # Core API Group: Safe read-only access to cluster topology
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "persistentvolumes", "pods", "services"]
+    verbs: ["get", "list", "watch"]
+  
+  # Workload API Group: Visibility into how apps are running
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+    
+  # Metrics/Auto-scaling: Crucial for your HPA to function
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: boutique-cluster-reader-binding
+  labels:
+    app.kubernetes.io/name: online-boutique
+subjects:
+  - kind: ServiceAccount
+    name: cluster-admin-sa 
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: boutique-cluster-reader
+  apiGroup: rbac.authorization.k8s.io

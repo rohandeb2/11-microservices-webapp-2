@@ -1,0 +1,30 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: microservice-standard-role
+  namespace: boutique-app
+rules:
+  # Allow services to read their own configuration
+  - apiGroups: [""]
+    resources: ["configmaps", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  # Allow services to participate in leader election or health signaling if needed
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: microservice-standard-binding
+  namespace: boutique-app
+subjects:
+  # This binds the role to ALL service accounts in the namespace
+  # effectively setting the "Company Policy" for all 11 services
+  - kind: Group
+    name: system:serviceaccounts:boutique-app
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: microservice-standard-role
+  apiGroup: rbac.authorization.k8s.io
