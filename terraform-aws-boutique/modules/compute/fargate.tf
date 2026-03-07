@@ -25,7 +25,7 @@ resource "aws_iam_role_policy_attachment" "fargate_execution" {
 # 2. Fargate Profile
 # Industry Standard: We isolate Fargate workloads into a specific namespace
 resource "aws_eks_fargate_profile" "main" {
-  cluster_name           = var.cluster_name
+  cluster_name           = aws_eks_cluster.main.name
   fargate_profile_name   = "${var.project_name}-fargate-profile"
   pod_execution_role_arn = aws_iam_role.fargate.arn
   subnet_ids             = var.private_app_subnet_ids

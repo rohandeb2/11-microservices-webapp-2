@@ -11,7 +11,7 @@ resource "aws_cloudfront_distribution" "main" {
   # Origin: This points to your Application Load Balancer (ALB)
   origin {
     domain_name = var.alb_dns_name
-    origin_id   = "ALB-Frontend"
+    origin_id   = "ALB-Origin"
 
     custom_origin_config {
       http_port              = 80
@@ -24,7 +24,7 @@ resource "aws_cloudfront_distribution" "main" {
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "ALB-Frontend"
+    target_origin_id = "ALB-Origin"
 
     forwarded_values {
       query_string = true

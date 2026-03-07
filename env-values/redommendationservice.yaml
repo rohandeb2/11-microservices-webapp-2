@@ -1,0 +1,34 @@
+# --- Service Identity & Networking ---
+serviceName: "recommendationservice"
+containerPort: 8080
+servicePort: 80
+replicaCount: 2  # Keep 2 for performance; the frontend calls this for every product page
+
+# --- Application Configuration ---
+configData:
+  PORT: "8080"
+  PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:80"
+  ENABLE_PROFILER: "0"
+
+# --- Resource Management ---
+# Python logic for sorting/filtering requires a bit more RAM than the email service
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 512Mi  # Higher limit to handle list processing without OOM errors
+
+# --- Production Scaling Logic ---
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+
+# --- Security & Identity ---
+serviceAccount:
+  create: true
+  automountToken: false

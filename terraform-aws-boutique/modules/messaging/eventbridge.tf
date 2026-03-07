@@ -17,7 +17,6 @@ resource "aws_cloudwatch_event_rule" "daily_cleanup" {
   name                = "${var.project_name}-daily-cleanup"
   description         = "Trigger daily cleanup tasks for microservices"
   schedule_expression = "rate(24 hours)"
-  event_bus_name      = aws_cloudwatch_event_bus.app_bus.name
 }
 
 # 3. EventBridge Target: Trigger a specific SQS Queue
@@ -25,7 +24,7 @@ resource "aws_cloudwatch_event_rule" "daily_cleanup" {
 resource "aws_cloudwatch_event_target" "cleanup_target" {
   rule           = aws_cloudwatch_event_rule.daily_cleanup.name
   target_id      = "SendToEmailQueue"
-  arn            = var.email_queue_arn
+  arn       = aws_sqs_queue.email_queue.arn
 
   # Industry Standard: Input Transformation
   # We send a specific JSON message to the microservice

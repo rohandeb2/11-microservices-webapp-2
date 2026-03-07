@@ -15,11 +15,7 @@ variable "region" {
   type        = string
 }
 
-variable "enable_security_hub" {
-  description = "Toggle to enable/disable Security Hub"
-  type        = bool
-  default     = true
-}
+
 
 # --- Add to modules/security/variables.tf ---
 

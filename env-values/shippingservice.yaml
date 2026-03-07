@@ -1,0 +1,33 @@
+# --- Service Identity & Networking ---
+serviceName: "shippingservice"
+containerPort: 50051
+servicePort: 80
+replicaCount: 2
+
+# --- Application Configuration ---
+# Shipping is a Go-based gRPC service
+configData:
+  PORT: "50051"
+
+# --- Resource Management ---
+# Go services are highly efficient with memory; 64Mi is plenty for this logic
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# --- Production Scaling Logic ---
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# --- Security & Identity ---
+serviceAccount:
+  create: true
+  automountToken: false

@@ -1,0 +1,36 @@
+# --- Service Identity & Networking ---
+serviceName: "productcatalogservice"
+containerPort: 3550
+servicePort: 80
+replicaCount: 2
+
+# --- Application Configuration ---
+# This is a Go-based service providing the product data
+configData:
+  PORT: "3550"
+  # Set to 1 if you want to test failure scenarios (Senior DevOps trick)
+  EXTRA_LATENCY: "0"
+
+# --- Resource Management ---
+# Go services are lightweight; these limits are cost-optimized for Fargate
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# --- Production Scaling Logic ---
+# High traffic service - scales based on demand
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# --- Security & Identity ---
+serviceAccount:
+  create: true
+  automountToken: false

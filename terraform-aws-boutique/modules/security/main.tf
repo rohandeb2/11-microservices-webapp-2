@@ -1,3 +1,13 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0.0"
+      # This allows the module to accept the aliases passed from root
+      configuration_aliases = [ aws.us_east_1 ]
+    }
+  }
+}
 # --- modules/security/main.tf ---
 
 # 1. AWS WAF (Web Application Firewall) 
@@ -5,6 +15,7 @@
 resource "aws_wafv2_web_acl" "main" {
   name     = "${var.project_name}-waf-${var.environment}"
   scope    = "CLOUDFRONT"
+  provider = aws.us_east_1
   description = "WAF for ${var.project_name} CloudFront Distribution"
 
   default_action {
@@ -70,18 +81,6 @@ resource "aws_wafv2_web_acl" "main" {
   }
 }
 
-# 2. AWS Security Hub
-# Mandatory for MNCs to maintain a security score and detect misconfigurations
-resource "aws_securityhub_account" "main" {
-  count = var.enable_security_hub ? 1 : 0
-}
-
-# Industry Standard: Enabling the Foundational Security Best Practices standard
-resource "aws_securityhub_standards_subscription" "foundational" {
-  count         = var.enable_security_hub ? 1 : 0
-  depends_on    = [aws_securityhub_account.main]
-  standards_arn = "arn:aws:securityhub:${var.region}:850927603755:standards/aws-foundational-security-best-practices/v/1.0.0"
-}
 
 
 # 4. IAM Role for EKS Cluster

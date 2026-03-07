@@ -1,3 +1,14 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0.0"
+      # This allows the module to accept the aliases passed from root
+      configuration_aliases = [ aws.us_east_1 ]
+    }
+  }
+}
+
 # --- modules/networking/main.tf ---
 
 data "aws_availability_zones" "available" {

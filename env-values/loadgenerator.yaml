@@ -1,0 +1,34 @@
+# --- Service Identity & Networking ---
+serviceName: "loadgenerator"
+containerPort: 8080
+# Note: Loadgenerator is an internal tool; usually doesn't need a Service object
+# but we keep it for consistency in our Helm chart logic.
+replicaCount: 1 
+
+# --- Application Configuration ---
+configData:
+  # The most important variable: Pointing to your Frontend Load Balancer
+  FRONTEND_ADDR: "frontend:80"
+  # Users to simulate (Professional baseline for testing)
+  USERS: "10"
+
+# --- Resource Management ---
+# Locust (the tool inside) can be CPU intensive when simulating many users
+resources:
+  requests:
+    cpu: 200m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# --- Production Scaling Logic ---
+# We generally DO NOT autoscale the load generator. 
+# We want a controlled amount of load to test the OTHER services.
+autoscaling:
+  enabled: false
+
+# --- Security & Identity ---
+serviceAccount:
+  create: true
+  automountToken: false

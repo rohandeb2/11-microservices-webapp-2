@@ -29,6 +29,10 @@ module "global_iam" {
 # 2. Networking Layer (The Foundation)
 module "networking" {
   source        = "../../modules/networking"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
   project_name  = var.project_name
   environment   = var.environment
   vpc_cidr      = var.vpc_cidr
@@ -38,12 +42,16 @@ module "networking" {
   cluster_name = local.cluster_name 
   # certificate_arn is needed if your networking module handles CloudFront/ALB HTTPS
   certificate_arn = module.security.certificate_arn
-  alb_dns_name = module.compute.alb_dns_nam
+  alb_dns_name = module.compute.alb_dns_name
 }
 
 # 3. Security Layer (The Guardrail)
 module "security" {
   source              = "../../modules/security"
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
   project_name        = var.project_name
   environment         = var.environment
   region              = var.aws_region
@@ -85,7 +93,6 @@ module "messaging" {
   project_name    = var.project_name
   environment     = var.environment
   kms_key_arn     = module.security.kms_key_arn
-  email_queue_arn = module.messaging.email_queue_arn
 }
 
 # 7. Observability Layer (The Eyes)

@@ -14,9 +14,4 @@ variable "kms_key_arn" {
 }
 # --- Add to modules/messaging/variables.tf ---
 
-variable "email_queue_arn" {
-  description = "ARN of the SQS queue to be triggered by EventBridge"
-  type        = string
-}
-
 # Ensure var.project_name and var.environment are already present

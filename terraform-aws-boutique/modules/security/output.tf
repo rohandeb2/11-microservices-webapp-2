@@ -3,10 +3,7 @@ output "certificate_arn" {
   value = aws_acm_certificate.cert.arn
 }
 
-# Secrets Manager
-output "secrets_manager_arn" {
-  value = aws_secretsmanager_secret.main.arn
-}
+
 
 # IAM Roles for EKS
 output "eks_cluster_role_arn" {
