@@ -35,3 +35,4 @@ EXPOSE 9555
 
 # Senior Note: Ensure lowercase entrypoint matches the generated script
 ENTRYPOINT ["/app/bin/adservice"]
+

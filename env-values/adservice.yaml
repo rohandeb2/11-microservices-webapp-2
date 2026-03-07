@@ -1,5 +1,6 @@
 # --- Service Identity & Networking ---
 serviceName: "adservice"
+imageTag: "v2"   # remove this when running in production; this is just for testing new features in the adservice
 containerPort: 9555
 servicePort: 80
 replicaCount: 2  # High Availability: Minimum 2 pods across different nodes
