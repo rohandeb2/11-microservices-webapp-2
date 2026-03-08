@@ -8,6 +8,6 @@ metadata:
     env: production
     team: online-boutique-core
     # Enables automatic sidecar injection if you add a Service Mesh later
-    istio-injection: enabled 
+    istio-injection: disabled 
     # Label for Prometheus to discover metrics in this namespace
     monitoring: enabled

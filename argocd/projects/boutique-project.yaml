@@ -18,6 +18,9 @@ spec:
       server: https://kubernetes.default.svc
       name: in-cluster
 
+    - namespace: logging
+      server: https://kubernetes.default.svc
+      name: in-cluster
   # Monitoring: Enable resource monitoring within the ArgoCD UI
   orphanedResources:
     warn: true
@@ -31,6 +34,8 @@ spec:
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
+    - group: ''
+      kind: PersistentVolumeClaim # Necessary for ELK data storage
 
   # Role Definitions: Standard production-grade RBAC for the project
   roles:
