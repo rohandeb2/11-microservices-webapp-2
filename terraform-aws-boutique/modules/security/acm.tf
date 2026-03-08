@@ -1,12 +1,14 @@
 # --- modules/security/acm.tf ---
 
-# 1. Request the SSL Certificate
-# Industry Standard: CloudFront requires certificates to be in the us-east-1 region
+# 1. Request the SSL Certificate in us-east-1
+# Industry Standard: CloudFront strictly requires certificates to be in the us-east-1 region.
 resource "aws_acm_certificate" "cert" {
+  # This uses the us-east-1 provider alias passed from the root main.tf
+  provider          = aws.us_east_1 
   domain_name       = var.domain_name
   validation_method = "DNS"
 
-  # Include a wildcard to cover subdomains like api.example.com or shop.example.com
+  # Wildcard support for subdomains like shop.rohandevops.co.in
   subject_alternative_names = ["*.${var.domain_name}"]
 
   lifecycle {
@@ -20,7 +22,7 @@ resource "aws_acm_certificate" "cert" {
 }
 
 # 2. Create DNS Validation Records in Route 53
-# This automates the "Proof of Ownership" step
+# Note: DNS records are global, so we use the default provider here
 resource "aws_route53_record" "cert_validation" {
   for_each = {
     for dvo in aws_acm_certificate.cert.domain_validation_options : dvo.domain_name => {
@@ -39,11 +41,12 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 # 3. Trigger the actual Validation process
+# This MUST use the same us-east-1 provider as the certificate request
 resource "aws_acm_certificate_validation" "cert" {
+  provider                = aws.us_east_1
   certificate_arn         = aws_acm_certificate.cert.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 
-  # SENIOR TIP: Add a timeout so Terraform doesn't hang forever
   timeouts {
     create = "10m" 
   }

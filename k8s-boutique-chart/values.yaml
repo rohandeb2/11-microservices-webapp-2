@@ -1,7 +1,7 @@
 # --- Global Settings ---
 # These are shared across all 11 microservices
 global:
-  accountId: "889501007925"  # Your AWS Account ID for ECR
+  accountId: ""  # Your AWS Account ID for ECR
   region: "ap-south-1"       # Your production region
 
 # --- Default Service Settings ---
@@ -32,7 +32,7 @@ serviceAccount:
   name: "boutique-admin-sa" 
   annotations:
     # Ensure this IAM Role has SecretsManager access
-    eks.amazonaws.com/role-arn: "arn:aws:iam::889501007925:role/boutique-app-microservice-role"
+    eks.amazonaws.com/role-arn: ""
 # --- Default Autoscaling Logic ---
 # Logic for your hpa.yaml template
 autoscaling:
@@ -58,9 +58,9 @@ ingress:
   # Professional Tip: The ALB Controller uses these to build your Load Balancer
   annotations:
     # PASTE YOUR ACTUAL ACM ARN HERE FROM TERRAFORM
-    certificateArn: "arn:aws:acm:ap-south-1:889501007925:certificate/514bba37-d6cc-4b73-9216-3853f8ea50e0"
+    certificateArn: ""
   hosts:
-    - host: #"boutique.rohandevops.co.in" # Replace with your Route53 domain
+    - host: "boutique.rohandevops.co.in" # Replace with your Route53 domain
       paths:
         - path: /
           pathType: Prefix

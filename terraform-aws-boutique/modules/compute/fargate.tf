@@ -31,7 +31,7 @@ resource "aws_eks_fargate_profile" "main" {
   subnet_ids             = var.private_app_subnet_ids
 
   selector {
-    namespace = "fargate-node"
+    namespace = "boutique-app"
   }
 
   tags = {
