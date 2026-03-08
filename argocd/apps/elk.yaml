@@ -1,0 +1,23 @@
+# argocd/apps/elk-stack.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: elk-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: online-boutique
+  source:
+    repoURL: https://github.com/rohandeb2/11-microservices-webapp-2.git
+    targetRevision: HEAD
+    path: elk  # Points to your elk/ folder
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

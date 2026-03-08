@@ -1,0 +1,10 @@
+# k8s-cluster-bootstrap/elk-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+  labels:
+    name: logging
+    env: production
+    team: platform-engineering
+    monitoring: enabled

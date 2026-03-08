@@ -1,0 +1,75 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for argocd
+# ansible/roles/argocd/tasks/main.yml
+---
+- name: "[ArgoCD] Install ArgoCD via Helm"
+  kubernetes.core.helm:
+    name: argocd
+    chart_ref: argo/argo-cd
+    release_namespace: argocd
+    create_namespace: true
+    chart_version: "5.51.6"
+    values:
+      server:
+        ingress:
+          enabled: true
+          ingressClassName: alb
+          annotations:
+            alb.ingress.kubernetes.io/scheme: internet-facing
+            alb.ingress.kubernetes.io/target-type: ip
+            alb.ingress.kubernetes.io/backend-protocol: HTTPS
+            alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+          hosts:
+            - "argocd.{{ domain_name }}"
+  register: argocd_install
+
+- name: "[ArgoCD] Wait for ArgoCD server to be ready"
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    namespace: argocd
+    name: argocd-server
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 300
+
+- name: "[ArgoCD] Apply AppProject for online-boutique"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../argocd/projects/boutique-project.yaml"
+
+- name: "[ArgoCD] Bootstrap root application (App of Apps)"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      metadata:
+        name: root-app
+        namespace: argocd
+      spec:
+        project: online-boutique
+        source:
+          repoURL: "https://github.com/rohandeb2/11-microservices-webapp-2.git"
+          targetRevision: HEAD
+          path: argocd/apps
+        destination:
+          server: https://kubernetes.default.svc
+          namespace: argocd
+        syncPolicy:
+          automated:
+            prune: true
+            selfHeal: true
+
+- name: "[ArgoCD] Display initial admin password"
+  shell: |
+    kubectl -n argocd get secret argocd-initial-admin-secret \
+      -o jsonpath="{.data.password}" | base64 -d
+  register: argocd_password
+  changed_when: false
+
+- name: "[ArgoCD] Print credentials"
+  debug:
+    msg: "ArgoCD URL: https://argocd.{{ domain_name }} | Password: {{ argocd_password.stdout }}"

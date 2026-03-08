@@ -1,0 +1,23 @@
+# ansible/group_vars/all.yml
+---
+# ArgoCD
+argocd_version: "v2.9.3"
+argocd_namespace: "argocd"
+argocd_admin_password: "{{ lookup('env', 'ARGOCD_ADMIN_PASSWORD') }}"
+
+# Helm Chart Versions (pin versions for reproducibility)
+prometheus_stack_version: "45.0.0"
+elk_version: "8.11.0"
+external_secrets_version: "0.9.11"
+aws_lbc_version: "1.6.2"
+
+# ECR
+ecr_registry: "{{ aws_account_id }}.dkr.ecr.{{ aws_region }}.amazonaws.com"
+
+# Namespaces to create
+namespaces:
+  - boutique-app
+  - argocd
+  - monitoring
+  - logging
+  - external-secrets

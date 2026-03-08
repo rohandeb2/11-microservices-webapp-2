@@ -1,0 +1,79 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for elk
+# ansible/roles/elk/tasks/main.yml
+---
+- name: "[ELK] Create logging namespace"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: logging
+
+- name: "[ELK] Create Elasticsearch credentials secret"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: elasticsearch-credentials
+        namespace: logging
+      type: Opaque
+      stringData:
+        username: "elastic"
+        # In production, pull from AWS Secrets Manager
+        password: "{{ lookup('env', 'ELASTIC_PASSWORD') | default('boutique-elk-2024') }}"
+
+- name: "[ELK] Deploy Elasticsearch"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../elk/elasticsearch/elasticsearch.yaml"
+
+- name: "[ELK] Wait for Elasticsearch to be ready"
+  kubernetes.core.k8s_info:
+    kind: StatefulSet
+    namespace: logging
+    name: elasticsearch
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 300
+
+- name: "[ELK] Deploy Logstash"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../elk/logstash/logstash-config.yaml"
+
+- name: "[ELK] Deploy Filebeat DaemonSet"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../elk/filebeat/filebeat-daemonset.yaml"
+
+- name: "[ELK] Deploy Kibana"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../elk/kibana/kibana.yaml"
+
+- name: "[ELK] Deploy Kibana Ingress"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../elk/kibana/kibana-ingress.yaml"
+
+- name: "[ELK] Wait for Kibana to be ready"
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    namespace: logging
+    name: kibana
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 300
+
+- name: "[ELK] Print Kibana URL"
+  debug:
+    msg: "Kibana is available at: https://kibana.{{ domain_name }}"
