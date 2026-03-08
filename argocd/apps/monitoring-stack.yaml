@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: online-boutique
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 45.0.0
+    chart: kube-prometheus-stack
+    helm:
+      values: |
+        prometheus:
+          prometheusSpec:
+            storageSpec:
+              emptyDir:
+                medium: Memory
+        
+        # Fargate Fix: These must be explicitly disabled at the top level
+        nodeExporter:
+          enabled: false
+        prometheus-node-exporter:
+          enabled: false
+        kubeStateMetrics:
+          enabled: true
+
+        grafana:
+          adminPassword: "admin"
+          ingress:
+            enabled: true
+            annotations:
+              kubernetes.io/ingress.class: alb
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+              alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:889501007925:certificate/your-cert-id
+              alb.ingress.kubernetes.io/ssl-redirect: '443'
+            hosts:
+              - grafana.rohandevops.co.in
+
+        alertmanager:
+          config:
+            global:
+              resolve_timeout: 5m
+            route:
+              group_by: ['job']
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 12h
+              receiver: 'slack-notifications'
+              routes:
+              - matchers:
+                - severity = critical
+                receiver: 'slack-notifications'
+            receivers:
+            - name: 'slack-notifications'
+              slack_configs:
+              - api_url: 'https://hooks.slack.com/services/T000/B000/XXXX'
+                channel: '#alerts-boutique'
+                send_resolved: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

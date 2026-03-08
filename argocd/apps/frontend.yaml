@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend
+  namespace: argocd
+  # CEO Note: Essential for clean teardowns of the ALB and Target Groups
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Senior DevOps Fix: Align with 'online-boutique' project security
+  project: online-boutique
+
+  source:
+    repoURL: https://github.com/rohandeb2/11-microservices-webapp-2.git
+    targetRevision: HEAD
+    path: k8s-boutique-chart
+    
+    helm:
+      # Inject service-specific values including Ingress annotations
+      valueFiles:
+        - ../env-values/frontend.yaml
+      
+      # 12 LPA Standard: Explicitly set the service name and stable image tag
+      parameters:
+        - name: "serviceName"
+          value: "frontend"
+        - name: "imageTag"
+          value: "v2" # Using the fixed build for Go-based static assets
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique-app
+
+  syncPolicy:
+    automated:
+      prune: true      # Removes old ALB rules if they are deleted from Git
+      selfHeal: true   # Reverts manual Ingress changes to match Git Truth
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - SkipDryRunOnMissingResource=true
+    
+    # Critical for EKS Fargate: Handles slow ALB Target Group registration
+    retry:
+      limit: 5
+      backoff:
+        duration: 20s
+        factor: 2
+        maxDuration: 10m
+
+  # Senior DevOps Addition: Ignore live fields modified by AWS ALB Controller
+  # Without this, the frontend will always show "Out of Sync" as AWS adds its own metadata.
+  ignoreDifferences:
+    - group: networking.k8s.io
+      kind: Ingress
+      jsonPointers:
+        - /metadata/annotations/alb.ingress.kubernetes.io~1target-type
+        - /metadata/annotations/elbv2.k8s.aws~1resource-arp

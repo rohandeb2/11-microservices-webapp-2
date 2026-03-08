@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paymentservice
+  namespace: argocd
+  # CEO Note: Crucial for automated cleanup of the service and deployment
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Senior DevOps Fix: Align with the 'online-boutique' project governance
+  project: online-boutique
+
+  source:
+    repoURL: https://github.com/rohandeb2/11-microservices-webapp-2.git
+    targetRevision: HEAD
+    path: k8s-boutique-chart
+    
+    helm:
+      # Inject service-specific overrides (CPU/Memory limits for Node.js)
+      valueFiles:
+        - ../env-values/paymentservice.yaml
+      
+      # 12 LPA Standard: Parameter overrides for dynamic versioning
+      parameters:
+        - name: "serviceName"
+          value: "paymentservice"
+        - name: "imageTag"
+          value: "v2" # Using v2 to ensure consistent deployment with the rest of the stack
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique-app
+
+  syncPolicy:
+    automated:
+      prune: true      # Removes resources if they are deleted from Git
+      selfHeal: true   # Corrects manual kubectl edits to match Git Truth
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    
+    # Critical for Fargate: Exponential backoff for stable node provisioning
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  # Senior DevOps Addition: Ignore live fields modified by Kubernetes controllers
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/template/metadata/annotations/kubectl.kubernetes.io~1restartedAt

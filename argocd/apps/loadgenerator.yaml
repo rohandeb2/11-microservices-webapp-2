@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loadgenerator
+  namespace: argocd
+  # CEO Note: Automatically cleans up the deployment if the app is removed from Git.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Senior DevOps Fix: Align with the production project governance
+  project: online-boutique
+
+  source:
+    repoURL: https://github.com/rohandeb2/11-microservices-webapp-2.git
+    targetRevision: HEAD
+    path: k8s-boutique-chart
+    
+    helm:
+      # Inject service-specific values (e.g., target frontend URL)
+      valueFiles:
+        - ../env-values/loadgenerator.yaml
+      
+      # 12 LPA Standard: Parameter overrides for dynamic versioning
+      parameters:
+        - name: "serviceName"
+          value: "loadgenerator"
+        - name: "imageTag"
+          value: "v2" # Using v2 to ensure consistent Python dependency builds
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique-app
+
+  syncPolicy:
+    automated:
+      prune: true      
+      selfHeal: true   
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    
+    # Critical for Fargate: Exponential backoff for stable provisioning
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  # Senior DevOps Addition: Ignore certain fields that might change during load tests
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas # Allows you to scale load manually without ArgoCD reverting it

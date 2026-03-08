@@ -50,3 +50,23 @@ spec:
     ports:
     - protocol: TCP
       port: 8080
+    
+---
+# --- 4. Internal Microservice Communication ---
+# Allows services within the boutique-app namespace to communicate with each other
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internal-traffic
+  namespace: boutique-app
+spec:
+  podSelector: {} # Applies to all pods in the namespace
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {} # Allow ingress from any other pod in this namespace
+  egress:
+  - to:
+    - podSelector: {} # Allow egress to any other pod in this namespace

@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: boutique-service-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack # Must match the release label of your stack
+spec:
+  groups:
+  - name: boutique.rules
+    rules:
+    - alert: MicroserviceDown
+      expr: kube_deployment_status_replicas_available{namespace="boutique-app"} == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Microservice {{ $labels.deployment }} is DOWN"
+        description: "The deployment {{ $labels.deployment }} has 0 available replicas in Fargate for more than 2 minutes."
