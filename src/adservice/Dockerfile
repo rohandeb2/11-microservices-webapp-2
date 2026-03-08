@@ -27,12 +27,15 @@ USER appuser
 
 # --- THE PRODUCTION TRUTH: Environment Variables ---
 # JVM tuning: Ensures Java respects Kubernetes memory limits
+# JVM tuning + disable GCP profiler
+# --- THE PRODUCTION TRUTH: Environment Variables ---
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
-# Disable profiler: Prevents crash in EKS/Fargate due to missing GCP agents
+# Completely disable any GCP/Stackdriver profiling logic
 ENV DISABLE_PROFILER=1
+ENV ENABLE_PROFILER=false
 
 EXPOSE 9555
 
 # Senior Note: Ensure lowercase entrypoint matches the generated script
-ENTRYPOINT ["/app/bin/adservice"]
+ENTRYPOINT ["/app/bin/AdService"]   
 

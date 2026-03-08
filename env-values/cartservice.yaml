@@ -1,0 +1,33 @@
+# --- Service Identity & Networking ---
+serviceName: "cartservice"   # FIXED: Must be cartservice
+containerPort: 7070
+servicePort: 7070            # FIXED: Align with the .NET runtime
+replicaCount: 3
+
+# --- Application Configuration ---
+configData:
+  PORT: "7070"
+  REDIS_ADDR: "redis-cart:6379" # ADDED: Critical for persistent shopping carts
+  ENABLE_PROFILER: "0"
+
+# --- Resource Management ---
+# Cart service is light (C#/.NET), but needs fast memory for object serialization
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# --- Production Scaling Logic ---
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+# --- Security & Identity ---
+serviceAccount:
+  create: true
+  automountToken: true  # FIXED: Set to true so it can fetch AWS Secrets

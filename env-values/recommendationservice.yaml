@@ -31,4 +31,4 @@ autoscaling:
 # --- Security & Identity ---
 serviceAccount:
   create: true
-  automountToken: false 
+  automountToken: true 

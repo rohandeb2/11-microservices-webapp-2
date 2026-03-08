@@ -21,5 +21,5 @@ spec:
     pods: "40"             # Max pods (11 services * 3 replicas + overhead)
     services: "15"         # You have 11 services
     configmaps: "20"
-    secrets: "20"
+    secrets: "100"
     persistentvolumeclaims: "0" # As a CEO, you prefer stateless Fargate

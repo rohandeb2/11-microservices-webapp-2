@@ -7,13 +7,12 @@ metadata:
     {{- include "k8s-boutique-chart.labels" . | nindent 4 }}
   annotations:
     # --- AWS ALB Specific Annotations ---
-    # Tells EKS to create an Application Load Balancer
-    kubernetes.io/ingress.class: alb
+    # FIXED: Removed 'kubernetes.io/ingress.class' from here
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    
+    alb.ingress.kubernetes.io/group.name: "boutique-group" # This merges all 6 into 1 ALB
+
     # --- SSL/TLS Configuration (Using your ACM Cert) ---
-    # Replace the ARN below with your actual ACM ARN from Terraform output
     alb.ingress.kubernetes.io/certificate-arn: {{ .Values.ingress.annotations.certificateArn | default "arn:aws:acm:ap-south-1:889501007925:certificate/placeholder" }}
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
@@ -21,12 +20,14 @@ metadata:
     # Custom annotations from your values.yaml
     {{- with .Values.ingress.annotations }}
     {{- range $key, $value := . }}
-    {{- if ne $key "certificateArn" }}
+    {{- if and (ne $key "certificateArn") (ne $key "kubernetes.io/ingress.class") }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
     {{- end }}
     {{- end }}
 spec:
+  # SENIOR FIX: Modern way to define the Ingress Class
+  ingressClassName: alb
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
@@ -37,7 +38,6 @@ spec:
             pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
-                # Direct traffic specifically to the frontend service
                 name: frontend
                 port:
                   number: 80

@@ -1,10 +1,10 @@
 # --- environments/dev/main.tf ---
 
-terraform {
-  required_version = ">= 1.5.0"
-  # Backend is initialized via backend.conf for flexibility
-  backend "s3" {}
-}
+# terraform {
+#   required_version = ">= 1.5.0"
+#   # Backend is initialized via backend.conf for flexibility
+#   backend "s3" {}
+# }
 
 provider "aws" {
   region = var.aws_region

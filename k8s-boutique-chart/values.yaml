@@ -60,7 +60,7 @@ ingress:
     # PASTE YOUR ACTUAL ACM ARN HERE FROM TERRAFORM
     certificateArn: "arn:aws:acm:ap-south-1:889501007925:certificate/514bba37-d6cc-4b73-9216-3853f8ea50e0"
   hosts:
-    - host: "boutique.rohandevops.co.in" # Replace with your Route53 domain
+    - host: #"boutique.rohandevops.co.in" # Replace with your Route53 domain
       paths:
         - path: /
           pathType: Prefix
