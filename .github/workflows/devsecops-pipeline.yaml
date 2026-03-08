@@ -1,0 +1,130 @@
+name: "Elite Production DevSecOps"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write   # Required for AWS OIDC authentication
+  contents: write   # Required for GitOps commits
+  security-events: write
+
+jobs:
+  # --- STAGE 1: HYPER-SECURITY (SECRETS & IAC) ---
+  pre-flight-security:
+    name: "Secrets & IaC Shield"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Gitleaks Scan (Secret Detection)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy IaC Scan (Terraform & K8s)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+  # --- STAGE 2: SAST & SCA (CODE & DEPS) ---
+  code-analysis:
+    name: "SonarQube & OWASP SCA"
+    needs: pre-flight-security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: SonarQube SAST
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'OnlineBoutique'
+          path: '.'
+          format: 'HTML'
+          args: '--failOnCVSS 7'
+
+  # --- STAGE 3: SUPPLY CHAIN SECURITY (BUILD/SIGN/SBOM) ---
+  build-and-harden:
+    needs: code-analysis
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [adservice, cartservice, checkoutservice, currencyservice, emailservice, frontend, paymentservice, productcatalogservice, recommendationservice, shippingservice]
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. AUTHENTICATE TO AWS ECR (Senior Choice)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 2. GENERATE SBOM (Syft)
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      # 3. BUILD & PUSH
+      - name: Build and Push to ECR
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/${{ matrix.service }}
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }}
+
+      # 4. GENERATE SBOM & ATTESTATION
+      - name: Generate SBOM
+        run: syft ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }} -o spdx-json > sbom.json
+
+      # 5. IMAGE SIGNING (Cosign)
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.4.0
+
+      - name: Sign Image
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }}
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+  # --- STAGE 4: DEPLOYMENT WITH APPROVAL GATE ---
+  deploy-dev:
+    name: "Deploy to Dev"
+    needs: build-and-harden
+    runs-on: ubuntu-latest
+    environment: dev # Enables Environment-specific secrets/rules
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Dev Manifests
+        run: |
+          sed -i "s|tag:.*|tag: ${{ github.sha }}|" env-values/dev/*.yaml
+          git config user.name "GitOps Bot"
+          git add . && git commit -m "deploy(dev): version ${{ github.sha }}" && git push
+
+  deploy-prod:
+    name: "Deploy to Production"
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: production # TRAPS THE PIPELINE FOR MANUAL APPROVAL
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Prod Manifests
+        run: |
+          sed -i "s|tag:.*|tag: ${{ github.sha }}|" env-values/prod/*.yaml
+          git add . && git commit -m "deploy(prod): version ${{ github.sha }}" && git push
