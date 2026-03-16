@@ -1,0 +1,267 @@
+name: Elite Production DevSecOps
+
+on:
+  push:
+    branches: ["dev"] # change it with main 
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  id-token: write
+  contents: write
+  security-events: write
+
+jobs:
+
+# ------------------------------------------------
+# STAGE 1: SECRETS + IAC SECURITY
+# ------------------------------------------------
+  pre-flight-security:
+    name: Secrets & IaC Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy IaC Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
+# ------------------------------------------------
+# STAGE 2: CODE SECURITY
+# ------------------------------------------------
+  code-analysis:
+    name: SAST + Dependency Scan
+    needs: pre-flight-security
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: OnlineBoutique
+          path: .
+          format: HTML
+          args: --failOnCVSS 7
+
+# ------------------------------------------------
+# STAGE 3: AI DEPLOYMENT RISK ANALYSIS
+# ------------------------------------------------
+  ai-risk-analysis:
+    name: AI Deployment Risk Analyzer
+    needs: code-analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: pip install "openai<1.0.0"
+
+      - name: Get Git Diff
+        run: |
+          git fetch origin main
+          git diff origin/main...HEAD > changes.diff
+
+      - name: Run AI Risk Analysis
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python tools/ai-deployment-analyzer/risk_check.py changes.diff
+
+# ------------------------------------------------
+# STAGE 4: HELM + K8S VALIDATION
+# ------------------------------------------------
+  manifest-validation:
+    name: Helm & Kubernetes Validation
+    needs: ai-risk-analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm Lint
+        run: helm lint ./helm-chart
+
+      - name: Install Kubeconform
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate Kubernetes Manifests
+        run: |
+          helm template ./helm-chart | kubeconform -strict
+
+# ------------------------------------------------
+# STAGE 5: BUILD + SUPPLY CHAIN SECURITY
+# ------------------------------------------------
+  build-and-harden:
+    name: Build, Scan, SBOM & Sign
+    needs: manifest-validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          [
+            adservice,
+            cartservice,
+            checkoutservice,
+            currencyservice,
+            emailservice,
+            frontend,
+            paymentservice,
+            productcatalogservice,
+            recommendationservice,
+            shippingservice
+          ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/${{ matrix.service }}
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }}
+
+      - name: Trivy Image Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: |
+          syft ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }} -o spdx-json > sbom.json
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign Container Image
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ steps.login-ecr.outputs.registry }}/boutique-${{ matrix.service }}:${{ github.sha }}
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+# ------------------------------------------------
+# STAGE 6: POLICY AS CODE
+# ------------------------------------------------
+  policy-check:
+    name: Kubernetes Policy Check
+    needs: build-and-harden
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Conftest
+        run: |
+          wget https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz
+          tar xzf conftest_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin
+
+      - name: Run Policy Tests
+        run: |
+          helm template ./helm-chart > rendered.yaml
+          conftest test rendered.yaml
+
+# ------------------------------------------------
+# STAGE 7: DEV DEPLOYMENT (GITOPS)
+# ------------------------------------------------
+  deploy-dev:
+    name: Deploy to Dev
+    needs: policy-check
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Dev Helm Values
+        run: |
+          sed -i "s|tag:.*|tag: ${{ github.sha }}|" env-values/dev/*.yaml
+          git config user.name "GitOps Bot"
+          git config user.email "bot@github.com"
+          git add .
+          git commit -m "deploy(dev): version ${{ github.sha }}"
+          git push
+
+# ------------------------------------------------
+# STAGE 8: RUNTIME SECURITY (DAST)
+# ------------------------------------------------
+  dast-scan:
+    name: DAST Security Scan
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: "https://dev.yourdomain.com"
+
+# ------------------------------------------------
+# STAGE 9: PRODUCTION DEPLOYMENT
+# ------------------------------------------------
+  deploy-prod:
+    name: Deploy to Production
+    needs: dast-scan
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Production Helm Values
+        run: |
+          sed -i "s|tag:.*|tag: ${{ github.sha }}|" env-values/prod/*.yaml
+          git add .
+          git commit -m "deploy(prod): version ${{ github.sha }}"
+          git push
