@@ -50,6 +50,24 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.region
           title  = "Frontend 5XX Errors"
         }
+      },
+
+      # 🔽 ADD THIS NEW WIDGET HERE
+      {
+        type   = "metric"
+        x      = 0
+        y      = 6
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["AWS/EKS", "CPUUtilization", "ClusterName", var.project_name]
+          ]
+          period = 300
+          stat   = "Average"
+          region = var.region
+          title  = "EKS Cluster CPU"
+        }
       }
     ]
   })
@@ -60,14 +78,15 @@ resource "aws_cloudwatch_dashboard" "main" {
 resource "aws_cloudwatch_metric_alarm" "high_error_rate" {
   alarm_name          = "${var.project_name}-high-error-rate"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
+  evaluation_periods  = 2
   metric_name         = "HTTPCode_Target_5XX_Count"
   namespace           = "AWS/ApplicationELB"
-  period              = "60"
+  period              = 60
   statistic           = "Sum"
-  threshold           = "10"
+  threshold           = 10
   alarm_description   = "This metric monitors microservice 5XX errors"
   alarm_actions       = [var.sns_topic_arn]
+  treat_missing_data = "notBreaching"
 
   dimensions = {
     LoadBalancer = var.alb_arn_suffix

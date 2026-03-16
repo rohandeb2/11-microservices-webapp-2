@@ -19,14 +19,14 @@ spec:
     helm:
       # Inject service-specific values from your env-values folder
       valueFiles:
-        - ../env-values/cart-service.yaml
+        - env-values/cart-service.yaml
       
       # 12 LPA Standard: Parameter overrides for dynamic versioning
       parameters:
-        - name: "serviceName"
-          value: "cartservice"
-        - name: "imageTag"
-          value: "v2" # Consistently using v2 to avoid ECR immutability issues
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Consistently using v2 to avoid ECR immutability issues
 
   destination:
     server: https://kubernetes.default.svc
@@ -37,8 +37,9 @@ spec:
       prune: true      # Deletes resources from K8s if they are removed from Git
       selfHeal: true   # Corrects manual kubectl edits to match the Git "Truth"
     syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
+      # - CreateNamespace=true
+      # - ApplyOutOfSyncOnly=true
+        - SkipDryRunOnMissingResource=true
     
     # Critical for Fargate: Exponential backoff handles slow node startups
     retry:

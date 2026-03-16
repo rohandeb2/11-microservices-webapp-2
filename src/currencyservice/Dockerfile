@@ -1,27 +1,23 @@
-# Stage 1: Build & Dependency Stage
-# Use the latest stable LTS Alpine image with SHA for immutability
+#This stage is only used to install dependencies and build native modules.
 FROM node:20.11.0-alpine AS builder
 
-# Install build dependencies for native modules (e.g., @google-cloud/profiler)
-RUN apk add --update --no-cache \
-    python3 \
-    make \
-    g++
+# Install build dependencies for native modules 
+RUN apk add --update --no-cache python3 make g++
 
 WORKDIR /usr/src/app
 
-# Optimization: Copy package files first to cache dependency installation
-# This prevents re-running 'npm install' unless package.json changes
+# These files define Node dependencies.
 COPY package*.json ./
 
-# Industrial Standard: Use 'npm ci' for reproducible builds in CI/CD
-# --only=production avoids installing heavy devDependencies like test runners
+# installs exact versions from package-lock.json and 
+# --only=production  This avoids installing dev dependencies like:
 RUN npm ci --only=production
+#run npm install --> installs dependencies normally
 
 # Stage 2: Final Hardened Runtime
 FROM node:20.11.0-alpine
 
-# Set production environment early to optimize library behaviors
+#This tells Node libraries: run in production mode
 ENV NODE_ENV=production
 
 WORKDIR /usr/src/app
@@ -32,12 +28,9 @@ COPY --from=builder /usr/src/app/node_modules ./node_modules
 # Copy application source code
 COPY . .
 
-# Security: Use a non-root user (standard in Node.js official images)
-# Never run production containers as 'root' to prevent host-level exploits
+#Node official images already include a user named: node with UID 1000
 USER node
 
 EXPOSE 7000
 
-# Industry Standard: Use 'node server.js' directly for proper signal handling (SIGTERM)
-# Avoid 'npm start' in Docker as it traps signals and prevents graceful shutdowns
 ENTRYPOINT [ "node", "server.js" ]

@@ -17,11 +17,13 @@ resource "aws_route53_record" "frontend_alias" {
   name    = var.domain_name
   type    = "A"
 
-  alias {
+  alias {     #In Amazon Route 53, an Alias record is a special DNS record that allows a domain to point directly to AWS services.
     # Reference the resource directly to create an implicit dependency
-    name                   = aws_cloudfront_distribution.main.domain_name
-    zone_id                = aws_cloudfront_distribution.main.hosted_zone_id
-    evaluate_target_health = false
+    name                   = aws_cloudfront_distribution.main.domain_name      #This line tells Route53 where to send the traffic.
+    zone_id                = aws_cloudfront_distribution.main.hosted_zone_id     #Every AWS service that integrates with Route53 has a Hosted Zone ID. 
+                                                                                  #For Amazon CloudFront, AWS uses a special global hosted zone.
+                                                                                  # This tells Route53 exactly which AWS service to route to
+    evaluate_target_health = false           #Route53 will not check the health of the CloudFront distribution before routing traffic.
   }
 }
 

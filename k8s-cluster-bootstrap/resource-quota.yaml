@@ -1,25 +1,23 @@
-apiVersion: v1
+# ResourceQuota = limits the total resources a namespace can use.
+
+apiVersion: v1 #Using the core Kubernetes API version
 kind: ResourceQuota
 metadata:
   name: boutique-app-quota
   namespace: boutique-app
-spec:
+spec:             #Inside spec.hard we define the maximum allowed resources.
   hard:
-    # --- Compute Budget ---
-    # Total CPU across all 11 services. 
-    # Based on your env-values, 6 cores allows for scaling bursts.
-    requests.cpu: "6"
-    limits.cpu: "10"
-    
-    # --- Memory Budget ---
-    # Total RAM. 12Gi covers your Java (Ad) and .NET (Cart) needs.
-    requests.memory: 16Gi
-    limits.memory: 20Gi
+    requests.cpu: "6"   #Total guaranteed CPU across all pods can be 6 cores
+    limits.cpu: "10"     #Pods can use up to 10 cores maximum
+    requests.memory: 16Gi  #16 GB reserved memory
+    limits.memory: 20Gi    #20 GB maximum memory
+    pods: "40"             # Maximum 40 pods allowed in this namespace.
+    services: "15"         # Maximum 15 services allowed.
+    configmaps: "20"       #Maximum 20 ConfigMaps.
+    secrets: "100"         #Maximum 100 Secrets.
+    persistentvolumeclaims: "5"   #Maximum 5 PVCs allowed.
+    requests.storage: 20Gi        #Total storage allowed = 20 GB
 
-    # --- Object Limits ---
-    # Prevents "Object Sprawl" (e.g., a bug creating 10,000 ConfigMaps)
-    pods: "40"             # Max pods (11 services * 3 replicas + overhead)
-    services: "15"         # You have 11 services
-    configmaps: "20"
-    secrets: "100"
-    persistentvolumeclaims: "5" # As a CEO, you prefer stateless Fargate
+
+#This ResourceQuota ensures that the boutique-app namespace cannot use more than the 
+#defined CPU, memory, pods, services, and storage, preventing it from overloading the Kubernetes cluster.

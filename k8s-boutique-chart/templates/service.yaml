@@ -1,25 +1,46 @@
+# Kubernetes API version for Service resource
 apiVersion: v1
+
+# Resource type is Service
+# Service exposes pods internally or externally
 kind: Service
+
 metadata:
+  # Name of the service (taken from values.yaml)
   name: {{ .Values.serviceName }}
+
   labels:
-    # Standard labels to match the Deployment for easier observability
+    # Standard labels used for identifying the application
     app.kubernetes.io/name: {{ .Values.serviceName }}
+
+    # Helm release name (example: boutique-prod)
     app.kubernetes.io/instance: {{ .Release.Name }}
+
+    # Indicates this component is a microservice
     app.kubernetes.io/component: microservice
+
+    # Shows this resource is managed by Helm
     app.kubernetes.io/managed-by: Helm
+
 spec:
-  # ClusterIP is the standard for internal microservice communication
+  # Service type defines how the service is exposed
+  # Default is ClusterIP (internal communication inside cluster)
   type: {{ .Values.serviceType | default "ClusterIP" }}
   
   selector:
-    # This MUST match the selector in your deployment.yaml
+    # Service will send traffic to pods with this label
+    # This label MUST match the labels defined in deployment.yaml
     app.kubernetes.io/name: {{ .Values.serviceName }}
   
   ports:
   - name: grpc-or-http
-    # The port other services will use to talk to this one (e.g., adservice:80)
+
+    # Port used by other services inside the cluster
+    # Example: frontend calling productservice:80
     port: {{ .Values.servicePort | default 80 }}
-    # The actual port the application is listening on inside the container
+
+    # Actual port inside the container where application runs
     targetPort: {{ .Values.containerPort }}
+
+    # Network protocol used
     protocol: TCP

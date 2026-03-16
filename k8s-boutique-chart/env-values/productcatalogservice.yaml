@@ -15,11 +15,12 @@ configData:
 # Go services are lightweight; these limits are cost-optimized for Fargate
 resources:
   requests:
-    cpu: 100m
-    memory: 64Mi
+    cpu: 250m
+    memory: 512Mi
   limits:
-    cpu: 200m
-    memory: 128Mi
+    cpu: 500m
+    memory: 1Gi
+
 
 # --- Production Scaling Logic ---
 # High traffic service - scales based on demand
@@ -32,5 +33,14 @@ autoscaling:
 
 # --- Security & Identity ---
 serviceAccount:
-  create: true
+  create: false
+  name: "boutique-admin-sa"
   automountToken: false
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10

@@ -2,7 +2,7 @@
 
 # 1. Main Application Assets Bucket
 resource "aws_s3_bucket" "assets" {
-  bucket = "${var.project_name}-assets-${var.environment}"
+  bucket = "${var.project_name}-assets-${var.environment}-${random_id.suffix.hex}"
 
   # Industry Standard: Prevent accidental deletion of the bucket
   lifecycle {
@@ -71,4 +71,13 @@ resource "aws_s3_bucket_policy" "allow_access_from_cloudfront" {
       }
     ]
   })
+}
+
+
+resource "aws_s3_bucket_ownership_controls" "assets" {
+  bucket = aws_s3_bucket.assets.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
 }

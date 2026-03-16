@@ -14,11 +14,11 @@ configData:
 # Python logic for sorting/filtering requires a bit more RAM than the email service
 resources:
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 250m
+    memory: 512Mi
   limits:
-    cpu: 200m
-    memory: 512Mi  # Higher limit to handle list processing without OOM errors
+    cpu: 500m
+    memory: 1Gi  # Higher limit to handle list processing without OOM errors
 
 # --- Production Scaling Logic ---
 autoscaling:
@@ -30,5 +30,14 @@ autoscaling:
 
 # --- Security & Identity ---
 serviceAccount:
-  create: true
-  automountToken: true 
+  create: false
+  name: "boutique-admin-sa"
+  automountToken: false
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10

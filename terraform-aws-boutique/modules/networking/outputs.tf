@@ -30,6 +30,10 @@ output "route53_zone_id" {
 output "cloudfront_arn" {
   value = aws_cloudfront_distribution.main.arn
 }
+output "route53_nameservers" {
+  description = "Nameservers to configure in GoDaddy"
+  value       = aws_route53_zone.main.name_servers
+}
 
 
 # --- modules/networking/outputs.tf --

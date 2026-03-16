@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-log-analyzer-svc
+  namespace: logging
+spec:
+  selector:
+    app: ai-log-analyzer
+  ports:
+    - protocol: TCP
+      port: 80      # Port external services call
+      targetPort: 5000 # Port Flask is listening on
+  type: ClusterIP

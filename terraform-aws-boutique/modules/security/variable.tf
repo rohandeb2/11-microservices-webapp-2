@@ -49,3 +49,6 @@ variable "route53_zone_id" {
   description = "The Route 53 Hosted Zone ID used for DNS validation"
   type        = string
 }
+variable "cluster_name" {
+  type = string
+}

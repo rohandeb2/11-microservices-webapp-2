@@ -1,5 +1,3 @@
-# Stage 1: Optimized Build Stage
-# Use specific SHA for immutability and Alpine for a small build footprint
 FROM golang:1.21.3-alpine AS builder
 
 # Install necessary build tools
@@ -7,17 +5,14 @@ RUN apk add --no-cache ca-certificates git build-base
 
 WORKDIR /src
 
-# Optimization: Separate dependency download
-# This ensures layers are cached unless go.mod or go.sum changes
+
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build flags for Production:
-# -ldflags="-s -w": Strips debug info/symbol tables to reduce binary size
-# CGO_ENABLED=0: Ensures a statically linked binary (vital for Distroless)
+
 ARG SKAFFOLD_GO_GCFLAGS
 RUN CGO_ENABLED=0 go build \
     -gcflags="${SKAFFOLD_GO_GCFLAGS}" \

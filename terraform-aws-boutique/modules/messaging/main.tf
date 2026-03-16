@@ -11,6 +11,13 @@ resource "aws_sns_topic" "order_events" {
   }
 }
 
+# 3. Dead Letter Queue (DLQ)
+# Industry Standard: Always have a place for "poison" messages to go
+resource "aws_sqs_queue" "email_dlq" {
+  name              = "${var.project_name}-email-dlq"
+  kms_master_key_id = var.kms_key_arn
+}
+
 # 2. Amazon SQS Queue (The Worker Queue)
 # This queue will hold messages for the emailservice to process
 resource "aws_sqs_queue" "email_queue" {
@@ -30,12 +37,7 @@ resource "aws_sqs_queue" "email_queue" {
   }
 }
 
-# 3. Dead Letter Queue (DLQ)
-# Industry Standard: Always have a place for "poison" messages to go
-resource "aws_sqs_queue" "email_dlq" {
-  name              = "${var.project_name}-email-dlq"
-  kms_master_key_id = var.kms_key_arn
-}
+
 
 # 4. SNS to SQS Subscription
 # Automatically push order events into the email queue
@@ -43,6 +45,7 @@ resource "aws_sns_topic_subscription" "email_subscription" {
   topic_arn = aws_sns_topic.order_events.arn
   protocol  = "sqs"
   endpoint  = aws_sqs_queue.email_queue.arn
+  raw_message_delivery = true
 }
 
 # 5. SQS Policy to allow SNS to write to it
@@ -52,7 +55,9 @@ resource "aws_sqs_queue_policy" "allow_sns" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = "*"
+      Principal = {
+        Service = "sns.amazonaws.com"
+      }
       Action    = "sqs:SendMessage"
       Resource  = aws_sqs_queue.email_queue.arn
       Condition = {

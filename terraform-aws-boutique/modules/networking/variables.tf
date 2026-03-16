@@ -54,8 +54,9 @@ variable "alb_dns_name" {
   type        = string
   default     = "" # Standard practice: allow it to be empty initially
 }
-# Note: cloudfront_domain_name and cloudfront_hosted_zone_id 
-# are passed as inputs if called from a different module, 
-# but since they are in the same networking module, 
-# we can reference them directly from cloudfront.tf outputs.
+variable "waf_arn" {
+  description = "WAF ARN to attach to CloudFront"
+  type        = string
+}
+
 

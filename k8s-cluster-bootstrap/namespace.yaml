@@ -1,13 +1,14 @@
-apiVersion: v1
+apiVersion: v1 #Using the core Kubernetes API version
 kind: Namespace
 metadata:
   name: boutique-app
   labels:
-    # Industry standard labels for organization and automation
     name: boutique-app
     env: production
     team: online-boutique-core
-    # Enables automatic sidecar injection if you add a Service Mesh later
-    istio-injection: disabled 
-    # Label for Prometheus to discover metrics in this namespace
     monitoring: enabled
+    istio-injection: disabled
+    app.kubernetes.io/part-of: online-boutique
+    app.kubernetes.io/managed-by: helm
+
+#Labels in Kubernetes namespaces are used for organization, automation, filtering, and policy management. They are not required for Kubernetes to work, but they are a production best practice for managing large-scale systems.

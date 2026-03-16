@@ -4,6 +4,7 @@
 
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
+  web_acl_id = var.waf_arn
   is_ipv6_enabled     = true
   comment             = "CloudFront for ${var.project_name} frontend"
   default_root_object = ""
@@ -26,7 +27,7 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "ALB-Origin"
 
-    forwarded_values {
+    forwarded_values {    #This tells CloudFront what data to pass to the backend.
       query_string = true
       headers      = ["Host", "Origin", "Authorization"] # Mandatory for microservices headers
 
@@ -41,9 +42,9 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl                = 86400
   }
 
-  price_class = "PriceClass_100" # Cost optimization for Dev/SIT environments
-
-  restrictions {
+  price_class = "PriceClass_100" # This controls where CloudFront edge locations are used. PriceClass_100 uses only: US, Europe
+                #For production we often use: PriceClass_All
+  restrictions {  
     geo_restriction {
       restriction_type = "none"
     }
@@ -52,8 +53,8 @@ resource "aws_cloudfront_distribution" "main" {
   viewer_certificate {
     cloudfront_default_certificate = true
     # Once you have ACM:
-    # acm_certificate_arn = var.certificate_arn
-    # ssl_support_method  = "sni-only"
+    acm_certificate_arn = var.certificate_arn
+    ssl_support_method  = "sni-only"
   }
 
   tags = {

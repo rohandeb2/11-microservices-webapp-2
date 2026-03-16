@@ -25,3 +25,10 @@ output "event_bus_name" {
   description = "The name of the custom EventBridge bus"
   value       = aws_cloudwatch_event_bus.app_bus.name
 }
+output "email_dlq_arn" {
+  description = "ARN of the Email Dead Letter Queue"
+  value       = aws_sqs_queue.email_dlq.arn
+}
+output "email_queue_name" {
+  value = aws_sqs_queue.email_queue.name
+}

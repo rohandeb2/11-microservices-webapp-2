@@ -18,14 +18,14 @@ spec:
     helm:
       # Inject service-specific overrides (CPU/Memory limits for Node.js)
       valueFiles:
-        - ../env-values/paymentservice.yaml
+        - env-values/paymentservice.yaml
       
       # 12 LPA Standard: Parameter overrides for dynamic versioning
       parameters:
-        - name: "serviceName"
-          value: "paymentservice"
-        - name: "imageTag"
-          value: "v2" # Using v2 to ensure consistent deployment with the rest of the stack
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Using v2 to ensure consistent deployment with the rest of the stack
 
   destination:
     server: https://kubernetes.default.svc
@@ -36,8 +36,9 @@ spec:
       prune: true      # Removes resources if they are deleted from Git
       selfHeal: true   # Corrects manual kubectl edits to match Git Truth
     syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
+      # - CreateNamespace=true
+      # - ApplyOutOfSyncOnly=true
+      - SkipDryRunOnMissingResource=true
     
     # Critical for Fargate: Exponential backoff for stable node provisioning
     retry:

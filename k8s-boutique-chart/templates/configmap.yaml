@@ -1,15 +1,50 @@
-{{- if .Values.configData -}}
+# Check if configData exists in values.yaml
+# If configData is not defined, this entire ConfigMap will NOT be created
+{{- if .Values.configData }}
+
+# Kubernetes API version for ConfigMap resource
 apiVersion: v1
+
+# Resource type we are creating
 kind: ConfigMap
+
 metadata:
+  # Name of the ConfigMap
+  # Example: if serviceName=paymentservice -> paymentservice-config
   name: {{ .Values.serviceName }}-config
+
   labels:
+    # Label used to identify the application/service name
     app.kubernetes.io/name: {{ .Values.serviceName }}
+
+    # Helm release name (example: boutique-prod, boutique-dev)
+    # Helps differentiate multiple deployments of same chart
     app.kubernetes.io/instance: {{ .Release.Name }}
+
+    # Shows that this resource is managed by Helm
     app.kubernetes.io/managed-by: Helm
 
+# ConfigMap stores configuration as key-value pairs
 data:
+
+  # Loop through all key-value pairs defined inside values.yaml under configData
+  # Example in values.yaml:
+  # configData:
+  #   APP_ENV: production
+  #   LOG_LEVEL: debug
   {{- range $key, $value := .Values.configData }}
+
+  # $key = configuration name (example: APP_ENV)
+  # $value = configuration value (example: production)
+
+  # Print key and value inside ConfigMap
+  # quote converts the value into a string format
+  # Example output: APP_ENV: "production"
   "{{ $key }}": {{ $value | quote }}
+
+  # End of loop iteration (moves to next key/value)
   {{- end }}
+
+# End of the if condition
+# If configData is empty or not defined, ConfigMap will not be created
 {{- end }}

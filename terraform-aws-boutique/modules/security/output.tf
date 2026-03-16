@@ -20,3 +20,21 @@ output "eks_node_role_name" {
 output "kms_key_arn" {
   value = aws_kms_key.main.arn # Ensure resource name is "main"
 }
+output "waf_arn" {
+  value = aws_wafv2_web_acl.main.arn
+}
+
+
+output "secrets_manager_arn" {
+  description = "Secrets Manager ARN for application secrets"
+  value       = aws_secretsmanager_secret.app_secrets.arn
+}
+
+output "aws_load_balancer_controller_role_arn" {
+  description = "IAM role used by AWS Load Balancer Controller"
+  value       = aws_iam_role.lbc_role.arn
+}
+
+output "kms_key_alias" {
+  value = aws_kms_alias.main.name
+}

@@ -18,14 +18,14 @@ spec:
     helm:
       # Inject service-specific overrides from your environment folder
       valueFiles:
-        - ../env-values/currencyservice.yaml
+        - env-values/currencyservice.yaml
       
       # 12 LPA Standard: Explicit parameter mapping
       parameters:
-        - name: "serviceName"
-          value: "currencyservice"
-        - name: "imageTag"
-          value: "v2" # Using v2 to ensure consistent deployment across all 11 services
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Using v2 to ensure consistent deployment across all 11 services
 
   destination:
     server: https://kubernetes.default.svc
@@ -36,9 +36,10 @@ spec:
       prune: true      # Automatically removes old resources
       selfHeal: true   # Corrects manual configuration drift automatically
     syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
-    
+      - SkipDryRunOnMissingResource=true   
+      # - CreateNamespace=true
+      # - ApplyOutOfSyncOnly=true
+      
     # Critical for Fargate: Exponential backoff for stable provisioning
     retry:
       limit: 5

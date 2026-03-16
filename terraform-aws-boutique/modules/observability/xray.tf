@@ -26,6 +26,9 @@ resource "aws_xray_sampling_rule" "main" {
 resource "aws_xray_encryption_config" "main" {
   type       = "KMS"
   key_id     = var.kms_key_arn
+  lifecycle {
+  prevent_destroy = true
+}
 }
 
 # 3. IAM Policy for EKS Worker Nodes to write to X-Ray

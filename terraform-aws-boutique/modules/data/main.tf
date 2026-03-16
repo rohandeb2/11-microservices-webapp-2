@@ -24,7 +24,7 @@ resource "aws_security_group" "redis_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # Allow all outbound traffic (Redis needs to communicate with EKS nodes and AWS services)
   }
 
   tags = {
@@ -34,7 +34,7 @@ resource "aws_security_group" "redis_sg" {
 
 # 3. ElastiCache Redis Cluster (Replaces local redis-cart)
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id          = "${var.project_name}-cart-cache"
+  replication_group_id          = "${var.project_name}-cart-cache" # This is the unique identifier for the Redis cluster. It should be descriptive and include the project name and purpose (e.g., "cart-cache").
   description = "Redis cluster for cartservice"
   node_type                     = "cache.t3.medium"
   port                          = 6379
@@ -45,7 +45,7 @@ resource "aws_elasticache_replication_group" "redis" {
   # High Availability Settings
   automatic_failover_enabled = true
   multi_az_enabled           = true
-  num_cache_clusters         = var.environment == "prod" ? 3 : 2
+  num_cache_clusters         = var.environment == "prod" ? 3 : 2 # More nodes in prod for better performance and availability, fewer in dev to save costs.
 
   # Security Settings
   at_rest_encryption_enabled    = true

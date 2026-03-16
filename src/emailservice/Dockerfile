@@ -1,39 +1,36 @@
-# Stage 1: Build Stage
-# Use a specific SHA for immutability and a slightly heavier image for compilation
+#This stage is used to install dependencies.
 FROM python:3.10.8-slim as builder
 
-RUN apt-get -qq update \
-    && apt-get install -y --no-install-recommends \
-        wget g++ \
-    && rm -rf /var/lib/apt/lists/*
+#Some Python packages need to compile native code during installation.
+# removes package lists to reduce image size.
+RUN apt-get -qq update && apt-get install -y --no-install-recommends wget g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Optimization: Copy only requirements first to leverage Docker layer caching
-# This ensures 'pip install' is only re-run if requirements.txt changes
+#This file lists Python dependencies.
 COPY requirements.txt .
+
 # Install to a local folder to make copying to the final stage cleaner
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Stage 2: Final Hardened Runtime
+# We start a fresh Python runtime image.It does not contain build tools.
 FROM python:3.10.8-slim
 
-# Industry Standard: Enable unbuffered logging for better log aggregation (Promtail/Fluentd)
+# PYTHONUNBUFFERED : logs are written immediately,
+# PYTHONDONTWRITEBYTECODE Prevents creation of .pyc files. Benefits: cleaner container filesystem less disk usage
+# ENABLE_PROFILER : This is used for performance profiling tools.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     ENABLE_PROFILER=1
 
 WORKDIR /app
 
-# Copy only the installed packages from the builder stage
+# This copies Python packages from the builder stage into the final container.
 COPY --from=builder /install /usr/local
 
 # Copy application source code
 COPY . .
 
-# Security: Create a dedicated non-root user
-# Running as 'root' in EKS is a major security finding in MNC audits
-# Create a system group and user
 RUN addgroup --system --gid 1001 appuser && \
     adduser --system --uid 1001 --gid 1001 appuser
 
@@ -42,5 +39,4 @@ USER 1001
 
 EXPOSE 8080
 
-# Use the full path for the Entrypoint and ensure signals are handled correctly
 ENTRYPOINT [ "python", "email_server.py" ]

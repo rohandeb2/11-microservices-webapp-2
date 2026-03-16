@@ -1,3 +1,5 @@
+#LimitRange = sets minimum, maximum, and default resource limits for containers in a namespace.
+
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -14,7 +16,7 @@ spec:
     max:                    # Maximum allowed for ANY single container
       cpu: "2"
       memory: 2Gi
-    min:                    # Minimum allowed for ANY single container
-      cpu: 10m
-      memory: 64Mi
-    type: Container
+    min:                    
+      cpu: 10m            #millicore -> 1000m = 1 CPU core
+      memory: 64Mi        #Mebibyte --> 1Mi = 1 MB
+    type: Container #This rule applies to individual containers inside pods.

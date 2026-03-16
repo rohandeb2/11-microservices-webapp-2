@@ -9,17 +9,13 @@ spec:
   project: online-boutique
   source:
     repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 45.0.0
     chart: kube-prometheus-stack
+    targetRevision: 61.3.0
     helm:
       values: |
         prometheus:
-          prometheusSpec:
-            storageSpec:
-              emptyDir:
-                medium: Memory
-        
-        # Fargate Fix: These must be explicitly disabled at the top level
+          prometheusSpec: {}
+
         nodeExporter:
           enabled: false
         prometheus-node-exporter:
@@ -28,15 +24,15 @@ spec:
           enabled: true
 
         grafana:
-          adminPassword: "admin"
+          adminPassword: admin
           ingress:
             enabled: true
             annotations:
               kubernetes.io/ingress.class: alb
               alb.ingress.kubernetes.io/scheme: internet-facing
               alb.ingress.kubernetes.io/target-type: ip
-              alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-              alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:889501007925:certificate/your-cert-id
+              alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+              alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:889501007925:certificate/YOUR_CERT
               alb.ingress.kubernetes.io/ssl-redirect: '443'
             hosts:
               - grafana.rohandevops.co.in
@@ -46,21 +42,26 @@ spec:
             global:
               resolve_timeout: 5m
             route:
+              receiver: ai-webhook  # Send EVERYTHING to AI first
               group_by: ['job']
               group_wait: 30s
               group_interval: 5m
               repeat_interval: 12h
-              receiver: 'slack-notifications'
               routes:
-              - matchers:
-                - severity = critical
-                receiver: 'slack-notifications'
+                - matchers:
+                    - severity = critical # Fixed syntax
+                  receiver: slack-notifications # Also send criticals to Slack
             receivers:
-            - name: 'slack-notifications'
-              slack_configs:
-              - api_url: 'https://hooks.slack.com/services/T000/B000/XXXX'
-                channel: '#alerts-boutique'
-                send_resolved: true
+              - name: slack-notifications
+                slack_configs:
+                  - api_url: https://hooks.slack.com/services/YOUR_WEBHOOK
+                    channel: '#alerts-boutique'
+                    send_resolved: true
+              - name: ai-webhook
+                webhook_configs:
+                  - url: http://ai-log-analyzer.logging.svc.cluster.local:5000/webhook
+                    send_resolved: true
+
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

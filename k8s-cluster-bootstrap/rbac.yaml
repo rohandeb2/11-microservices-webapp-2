@@ -1,30 +1,35 @@
+# This configuration:
+
+# 1️⃣ Creates a Role with read permissions for configs and services
+# 2️⃣ Uses RoleBinding to assign that role to all ServiceAccounts in the namespace
+# 3️⃣ Ensures all microservices follow a standard security policy
+
+
+
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: Role   #A Role defines what actions are allowed inside a specific namespace.
 metadata:
   name: microservice-standard-role
   namespace: boutique-app
-rules:
-  # Allow services to read their own configuration
+rules:   #This section defines what resources can be accessed and what actions are allowed.
+  - apiGroups: [""]     #"" means the core Kubernetes API group. eg: pod, secret, configmap
+    resources: ["configmaps", "services", "endpoints"]   #These are the resources that microservices can access.
+    verbs: ["get", "list", "watch"]   #microservices can read configuration but cannot modify it.
   - apiGroups: [""]
-    resources: ["configmaps", "services", "endpoints"]
-    verbs: ["get", "list", "watch"]
-  # Allow services to participate in leader election or health signaling if needed
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list"]
+    resources: ["pods"]   #Pod Access
+    verbs: ["get", "list"]   #But they cannot create, delete, or modify pods.
+  
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: RoleBinding  #A RoleBinding connects a Role to users or service accounts.
 metadata:
   name: microservice-standard-binding
   namespace: boutique-app
-subjects:
-  # This binds the role to ALL service accounts in the namespace
-  # effectively setting the "Company Policy" for all 11 services
-  - kind: Group
-    name: system:serviceaccounts:boutique-app
+subjects:     #Defines who receives the Role permissions.
+  - kind: Group      #This means we are binding the role to a group.
+    name: system:serviceaccounts:boutique-app  #This is a special Kubernetes group. It represents:All ServiceAccounts inside boutique-app namespace
     apiGroup: rbac.authorization.k8s.io
-roleRef:
+roleRef:     #This tells Kubernetes: Bind the microservice-standard-role to the group system:serviceaccounts:boutique-app.
   kind: Role
   name: microservice-standard-role
   apiGroup: rbac.authorization.k8s.io

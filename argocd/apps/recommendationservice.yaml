@@ -18,14 +18,14 @@ spec:
     helm:
       # Inject service-specific overrides (Python-specific memory/CPU)
       valueFiles:
-        - ../env-values/recommendationservice.yaml
+        - env-values/recommendationservice.yaml
       
       # 12 LPA Standard: Explicit parameter mapping
       parameters:
-        - name: "serviceName"
-          value: "recommendationservice"
-        - name: "imageTag"
-          value: "v2" # Consistently using the fixed build
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Consistently using the fixed build
 
   destination:
     server: https://kubernetes.default.svc
@@ -36,8 +36,9 @@ spec:
       prune: true      # Automatically removes old resources
       selfHeal: true   # Corrects manual configuration drift
     syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
+      # - CreateNamespace=true
+      # - ApplyOutOfSyncOnly=true
+      - SkipDryRunOnMissingResource=true
     
     # Critical for Fargate: Exponential backoff for stable provisioning
     retry:

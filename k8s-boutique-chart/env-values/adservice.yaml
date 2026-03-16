@@ -18,11 +18,11 @@ env:
 # Java applications are memory-hungry; these limits prevent OOMKilled errors
 resources:
   requests:
-    cpu: 200m
-    memory: 180Mi
+    cpu: 250m
+    memory: 512Mi
   limits:
-    cpu: 300m
-    memory: 300Mi
+    cpu: 500m
+    memory: 1Gi
 
 # --- Production Scaling Logic ---
 # Scale horizontally based on CPU/Memory usage
@@ -36,7 +36,7 @@ autoscaling:
 
 # --- Security & Identity ---
 serviceAccount:
-  create: true
+  create: false
   name: "boutique-admin-sa"
   automountToken: true
   

@@ -18,14 +18,14 @@ spec:
     helm:
       # Inject service-specific values including Ingress annotations
       valueFiles:
-        - ../env-values/frontend.yaml
+        - env-values/frontend.yaml
       
       # 12 LPA Standard: Explicitly set the service name and stable image tag
       parameters:
-        - name: "serviceName"
-          value: "frontend"
-        - name: "imageTag"
-          value: "v2" # Using the fixed build for Go-based static assets
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Using the fixed build for Go-based static assets
 
   destination:
     server: https://kubernetes.default.svc
@@ -36,8 +36,8 @@ spec:
       prune: true      # Removes old ALB rules if they are deleted from Git
       selfHeal: true   # Reverts manual Ingress changes to match Git Truth
     syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
+        # - CreateNamespace=true
+        # - ApplyOutOfSyncOnly=true
       - SkipDryRunOnMissingResource=true
     
     # Critical for EKS Fargate: Handles slow ALB Target Group registration

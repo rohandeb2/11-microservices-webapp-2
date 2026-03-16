@@ -24,7 +24,10 @@ resource "aws_kms_key" "main" {
         Sid    = "Allow EKS and App Roles to use the key"
         Effect = "Allow"
         Principal = {
-          AWS = "*" # In production, restrict this to specific IAM Role ARNs
+          AWS = [
+            aws_iam_role.microservice_role.arn,
+            aws_iam_role.eks_nodes.arn
+          ]
         }
         Action = [
           "kms:Encrypt",

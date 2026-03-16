@@ -18,14 +18,14 @@ spec:
     helm:
       # Inject service-specific overrides from your environment folder
       valueFiles:
-        - ../env-values/productcatalogservice.yaml
+        - env-values/productcatalogservice.yaml
       
       # 12 LPA Standard: Explicit parameter mapping
       parameters:
-        - name: "serviceName"
-          value: "productcatalogservice"
-        - name: "imageTag"
-          value: "v2" # Using the fixed build to ensure Go binary paths are correct
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Using the fixed build to ensure Go binary paths are correct
 
   destination:
     server: https://kubernetes.default.svc

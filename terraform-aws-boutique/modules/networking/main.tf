@@ -18,7 +18,7 @@ data "aws_availability_zones" "available" {
 # 1. Amazon Virtual Private Cloud
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
+  enable_dns_hostnames = true  #internal DNS resolution, Kubernetes service discovery, internal load balancers
   enable_dns_support   = true
 
   tags = {
@@ -43,12 +43,12 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidrs[count.index]
   availability_zone       = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = true   #Any EC2 instance launched inside this subnet will automatically get a public IP address.
 
   tags = {
     Name                                        = "${var.project_name}-public-${count.index + 1}"
     "kubernetes.io/role/elb"                    = "1" # Important for EKS ALB Discovery
-    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"   #These tags allow Amazon Elastic Kubernetes Service to automatically detect subnets.
   }
 }
 
@@ -125,5 +125,11 @@ resource "aws_route_table" "private" {
 resource "aws_route_table_association" "private_app" {
   count          = 3
   subnet_id      = aws_subnet.private_app[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
+}
+
+resource "aws_route_table_association" "private_db" {
+  count          = 3
+  subnet_id      = aws_subnet.private_db[count.index].id
   route_table_id = aws_route_table.private[count.index].id
 }

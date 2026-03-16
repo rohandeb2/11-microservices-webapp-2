@@ -1,7 +1,7 @@
 # --- modules/compute/ecr.tf ---
 
 # 1. List of microservices from your project
-locals {
+locals { 
   services = [
     "frontend",
     "cartservice",
@@ -45,15 +45,15 @@ resource "aws_ecr_lifecycle_policy" "cleanup" {
 
   policy = jsonencode({
     rules = [{
-      rulePriority = 1
+      rulePriority = 1 # Priority of the rule (lower numbers are evaluated first)
       description  = "Keep only last 10 images"
       selection = {
-        tagStatus     = "any"
-        countType     = "imageCountMoreThan"
+        tagStatus     = "any" # This applies to all images regardless of tags. You can change this to 'tagged' and specify a tag prefix if you want to only keep images with certain tags.
+        countType     = "imageCountMoreThan" # This means the rule will trigger when there are more than a certain number of images in the repository.
         countNumber   = 10
       }
       action = {
-        type = "expire"
+        type = "expire" # This means that when the rule is triggered, the excess images will be marked for deletion. AWS ECR will then automatically delete these images after a short period (usually within 24 hours).
       }
     }]
   })

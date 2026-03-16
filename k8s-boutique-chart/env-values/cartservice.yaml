@@ -14,11 +14,11 @@ configData:
 # Cart service is light (C#/.NET), but needs fast memory for object serialization
 resources:
   requests:
-    cpu: 100m
-    memory: 64Mi
+    cpu: 250m
+    memory: 512Mi
   limits:
-    cpu: 200m
-    memory: 128Mi
+    cpu: 500m
+    memory: 1Gi
 
 # --- Production Scaling Logic ---
 autoscaling:
@@ -29,5 +29,14 @@ autoscaling:
 
 # --- Security & Identity ---
 serviceAccount:
-  create: true
+  create: false
+  name: "boutique-admin-sa"
   automountToken: true  # FIXED: Set to true so it can fetch AWS Secrets
+
+readinessProbe:
+  initialDelaySeconds: 15
+  periodSeconds: 5
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10

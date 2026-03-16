@@ -16,7 +16,6 @@ spec:
   destinations:
     - namespace: boutique-app
       server: https://kubernetes.default.svc
-      name: in-cluster
 
     - namespace: logging
       server: https://kubernetes.default.svc
@@ -44,3 +43,5 @@ spec:
       policies:
         - p, proj:online-boutique:boutique-admin, applications, get, online-boutique/*, allow
         - p, proj:online-boutique:boutique-admin, applications, sync, online-boutique/*, allow
+      groups:
+        - boutique-admins

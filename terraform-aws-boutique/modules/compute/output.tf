@@ -31,11 +31,10 @@ output "alb_arn_suffix" {
   value = try(aws_lb.main.arn_suffix, "")
 }
 output "alb_dns_name" {
-  description = "The DNS name of the load balancer"
-  value       = aws_lb.main.dns_name
+  value = try(aws_lb.main.dns_name, "")
 }
 
 output "alb_zone_id" {
   description = "The zone_id of the load balancer"
-  value       = aws_lb.main.zone_id
+  value       = try(aws_lb.main.zone_id, "")
 }

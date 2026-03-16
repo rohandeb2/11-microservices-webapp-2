@@ -8,6 +8,9 @@ terraform {
     }
   }
 }
+data "aws_eks_cluster" "main" {
+  name = var.cluster_name
+}
 # --- modules/security/main.tf ---
 
 # 1. AWS WAF (Web Application Firewall) 
@@ -102,6 +105,12 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks_cluster.name
 }
 
+resource "aws_iam_role_policy_attachment" "eks_vpc_controller" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
+  role       = aws_iam_role.eks_cluster.name
+}
+
+
 # 5. IAM Role for EKS Worker Nodes
 resource "aws_iam_role" "eks_nodes" {
   name = "${var.project_name}-eks-node-role"
@@ -122,7 +131,7 @@ resource "aws_iam_role_policy_attachment" "worker_node_policy" {
   role       = aws_iam_role.eks_nodes.name
 }
 
-resource "aws_iam_role_policy_attachment" "cni_policy" {
+resource "aws_iam_role_policy_attachment" "worker_node_cni" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   role       = aws_iam_role.eks_nodes.name
 }
@@ -130,6 +139,11 @@ resource "aws_iam_role_policy_attachment" "cni_policy" {
 resource "aws_iam_role_policy_attachment" "registry_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.eks_nodes.name
+}
+
+resource "aws_iam_instance_profile" "eks_nodes" {
+  name = "${var.project_name}-eks-node-profile"
+  role = aws_iam_role.eks_nodes.name
 }
 
 # 6. Secrets Manager for App Credentials

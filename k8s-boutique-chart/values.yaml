@@ -1,70 +1,132 @@
-# --- Global Settings ---
-# These are shared across all 11 microservices
+# -----------------------------
+# Global settings (used across services)
+# -----------------------------
 global:
-  accountId: ""  # Your AWS Account ID for ECR
-  region: "ap-south-1"       # Your production region
+  accountId: "123456789012"          # change this to your actual AWS Account ID
+  region: "ap-south-1"               # AWS Region
 
-# --- Default Service Settings ---
-# These values are used if a specific service file doesn't override them
-serviceName: "base-service"
-replicaCount: 2
+# -----------------------------
+# Service Information
+# -----------------------------
+serviceName: frontend                # Name of the microservice
+replicaCount: 2                      # Number of pods
+
+# -----------------------------
+# Container Image
+# -----------------------------
 imageTag: "latest"
 
-# --- Infrastructure Defaults ---
-serviceType: ClusterIP
-servicePort: 80
+# -----------------------------
+# Container Port
+# -----------------------------
+containerPort: 8080                  # Port application runs on inside container
 
-# --- Default Resource Requests (Fargate Optimized) ---
-# Prevents pods from being scheduled without enough resources
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 250m
-    memory: 256Mi
+# -----------------------------
+# Kubernetes Service
+# -----------------------------
+serviceType: ClusterIP               # ClusterIP | NodePort | LoadBalancer
+servicePort: 80                      # Port exposed inside cluster
 
-# --- Security Baseline ---
-# Standard hardening for EKS production workloads
+# -----------------------------
+# Service Account
+# -----------------------------
 serviceAccount:
-  create: false
-  # Force this name so SecretStore can find it
-  name: "boutique-admin-sa" 
-  annotations:
-    # Ensure this IAM Role has SecretsManager access
-    eks.amazonaws.com/role-arn: ""
-# --- Default Autoscaling Logic ---
-# Logic for your hpa.yaml template
+  name: boutique-admin-sa
+
+# serviceAccount:
+#   create: false
+#   # Force this name so SecretStore can find it
+#   name: "boutique-admin-sa" 
+#   annotations:
+#     # Ensure this IAM Role has SecretsManager access
+#     eks.amazonaws.com/role-arn: "serviceAccount.annotations.eks.amazonaws.com/role-arn"
+
+# -----------------------------
+# ConfigMap Environment Variables
+# These will automatically load using envFrom
+# -----------------------------
+configData:
+  APP_ENV: production
+  LOG_LEVEL: info
+  FEATURE_FLAG: "true"
+
+# -----------------------------
+# Additional Environment Variables
+# (optional manual variables)
+# -----------------------------
+env:
+  - name: JAVA_OPTS
+    value: "-Xms256m -Xmx512m"
+
+# -----------------------------
+# Resource Limits
+# -----------------------------
+resources:
+  requests: 
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# -----------------------------
+# Horizontal Pod Autoscaler
+# -----------------------------
 autoscaling:
   enabled: true
+
   minReplicas: 2
   maxReplicas: 10
+
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
-  # Professional stabilization to prevent "flapping"
+
   scaleUpStabilizationWindow: 60
   scaleDownStabilizationWindow: 300
 
-# --- Empty Placeholders ---
-# These are populated by your env-values/ files
-configData: {}
-env: []
-# Add this block at the bottom
-service:
-  port: 80
-# --- Ingress & SSL Configuration (AWS ALB) ---
+  scaleUpPolicyPercent: 50
+  scaleDownPolicyPercent: 10
+
+# -----------------------------
+# Ingress Configuration (AWS ALB)
+# -----------------------------
 ingress:
   enabled: true
-  # Professional Tip: The ALB Controller uses these to build your Load Balancer
-  annotations:
-    # PASTE YOUR ACTUAL ACM ARN HERE FROM TERRAFORM
-    certificateArn: ""
+
   hosts:
-    - host: "boutique.rohandevops.co.in" # Replace with your Route53 domain
+    - host: boutique.rohandevops.co.in
       paths:
         - path: /
           pathType: Prefix
-containerPort: 8080
-# Fix for the NOTES.txt nil pointer error
+
+  annotations:
+    certificateArn: "arn:aws:acm:ap-south-1:123456789012:certificate/abcd1234" #change this to your actual ACM ARN
+
 httpRoute:
   enabled: false
+
+
+# ingress:
+#   enabled: true
+#   annotations:
+#     # PASTE YOUR ACTUAL ACM ARN HERE FROM TERRAFORM
+#     certificateArn: "ingress.annotations.certificateArn"
+#   hosts:
+#     - host: "boutique.rohandevops.co.in" # Replace with your Route53 domain
+#       paths:
+#         - path: /
+#           pathType: Prefix
+# containerPort: 8080
+# # Fix for the NOTES.txt nil pointer error
+# httpRoute:
+#   enabled: false
+
+
+
+
+
+
+
+
+
+ 

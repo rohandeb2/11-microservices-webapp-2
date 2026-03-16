@@ -18,14 +18,14 @@ spec:
     helm:
       # Inject service-specific values (e.g., target frontend URL)
       valueFiles:
-        - ../env-values/loadgenerator.yaml
+        - env-values/loadgenerator.yaml
       
       # 12 LPA Standard: Parameter overrides for dynamic versioning
       parameters:
-        - name: "serviceName"
-          value: "loadgenerator"
-        - name: "imageTag"
-          value: "v2" # Using v2 to ensure consistent Python dependency builds
+        - name: serviceName
+          value: adservice
+        - name: image.tag
+          value: latest # Using v2 to ensure consistent Python dependency builds
 
   destination:
     server: https://kubernetes.default.svc
@@ -36,8 +36,9 @@ spec:
       prune: true      
       selfHeal: true   
     syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
+      # - CreateNamespace=true
+      # - ApplyOutOfSyncOnly=true
+      - SkipDryRunOnMissingResource=true
     
     # Critical for Fargate: Exponential backoff for stable provisioning
     retry:

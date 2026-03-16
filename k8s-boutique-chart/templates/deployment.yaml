@@ -1,71 +1,153 @@
+# Kubernetes API version used for Deployment resource
 apiVersion: apps/v1
+
+# This resource type creates and manages Pods
 kind: Deployment
+
 metadata:
+  # Name of the deployment (taken from values.yaml)
   name: {{ .Values.serviceName }}
+
   labels:
+    # Label that identifies the application name
     app.kubernetes.io/name: {{ .Values.serviceName }}
+
+    # Helm release name (example: boutique-prod or boutique-dev)
     app.kubernetes.io/instance: {{ .Release.Name }}
+
+    # Label that tells this component is a microservice
     app.kubernetes.io/component: microservice
+
+    # Shows that this resource is managed by Helm
     app.kubernetes.io/managed-by: Helm
+
 spec:
+  # Number of pod replicas to run
+  # If replicaCount is not defined in values.yaml → default will be 2
   replicas: {{ .Values.replicaCount | default 2 }}
+
   strategy:
+    # Deployment update strategy
+    # RollingUpdate means pods are updated gradually
     type: RollingUpdate
+
     rollingUpdate:
+      # Maximum number of pods that can be unavailable during update
       maxUnavailable: 25%
+
+      # Extra pods that can be temporarily created during update
       maxSurge: 25%
+
   selector:
     matchLabels:
+      # Deployment will manage pods that have this label
       app.kubernetes.io/name: {{ .Values.serviceName }}
+
+  # Pod template (defines how the pods will be created)
   template:
     metadata:
+
       annotations:
-        # Re-triggers deployment when ConfigMap changes
+        # Helm renders the configmap.yaml file and generates a hash value
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+
+        # If ConfigMap changes → hash changes
+        # Kubernetes sees pod template change
+        # Deployment automatically restarts pods
+
       labels:
+        # Labels attached to pods created by this deployment
         app.kubernetes.io/name: {{ .Values.serviceName }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+
     spec:
-      serviceAccountName: {{ .Values.serviceAccount.name }}
+      # Service account used by the pod
+      # If not defined → default service account name is boutique-admin-sa
+      serviceAccountName: {{ .Values.serviceAccount.name | default "boutique-admin-sa" }}
+
       securityContext:
+        # Ensures container does NOT run as root user
         runAsNonRoot: true
+
+        # Container runs with user ID 1000
         runAsUser: 1000
+
+        # File system group for shared volumes
         fsGroup: 2000
+
       containers:
+
+      # Container definition inside the pod
       - name: server
+
+        # Container image pulled from AWS ECR
+        # Example:
+        # 123456789012.dkr.ecr.ap-south-1.amazonaws.com/boutique-app/paymentservice:latest
         image: "{{ .Values.global.accountId }}.dkr.ecr.{{ .Values.global.region }}.amazonaws.com/boutique-app/{{ .Values.serviceName }}:{{ .Values.imageTag | default "latest" }}"
+
+        # Image will only be pulled if it does not already exist on node
         imagePullPolicy: IfNotPresent
+
         ports:
         - name: container-port
+
+          # Port exposed by the container application
           containerPort: {{ .Values.containerPort }}
-        
-        # Pulls all variables from your ConfigMap automatically
+
+        # Load environment variables from ConfigMap
         {{- if .Values.configData }}
         envFrom:
         - configMapRef:
+
+            # ConfigMap name used to inject environment variables
             name: {{ .Values.serviceName }}-config
         {{- end }}
 
-        # Allows for manual/additional env vars if needed
+        # This block only runs if configData exists in values.yaml
+        # All ConfigMap values become environment variables in the container
+
+        # Allows defining additional environment variables manually
         {{- if .Values.env }}
         env:
+
+        # Converts env values from values.yaml into YAML format
         {{- toYaml .Values.env | nindent 8 }}
         {{- end }}
 
+        # Readiness probe checks if container is ready to serve traffic
         readinessProbe:
           tcpSocket:
+
+            # Kubernetes checks if this port is open
             port: {{ .Values.containerPort }}
+
+          # Wait 10 seconds before starting readiness checks
           initialDelaySeconds: 10
+
+          # Check every 5 seconds
           periodSeconds: 5
+
+        # Liveness probe checks if container is still running properly
         livenessProbe:
           tcpSocket:
+
+            # Kubernetes checks this port for container health
             port: {{ .Values.containerPort }}
+
+          # Wait 30 seconds before starting liveness checks
           initialDelaySeconds: 30
+
+          # Check every 10 seconds
           periodSeconds: 10
+
         resources:
+
+          # Minimum resources Kubernetes guarantees to the container
           requests:
             cpu: {{ .Values.resources.requests.cpu | default "100m" }}
             memory: {{ .Values.resources.requests.memory | default "128Mi" }}
+
+          # Maximum resources container can consume
           limits:
             cpu: {{ .Values.resources.limits.cpu | default "250m" }}
             memory: {{ .Values.resources.limits.memory | default "256Mi" }}

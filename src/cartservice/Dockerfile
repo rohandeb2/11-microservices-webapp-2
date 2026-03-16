@@ -6,15 +6,18 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat gcompat
 
 # Optimization: Cache dependencies separately
+#We copy them before copying full source code. Why? 👉 Docker layer caching
+#needs: .sln .csproj because those files contain the NuGet dependencies.
 COPY cartservice.sln .
 COPY src/cartservice.csproj src/
 COPY tests/cartservice.tests.csproj tests/
+
+#  This downloads all NuGet packages needed by the project.
 RUN dotnet restore cartservice.sln -r linux-musl-x64
 
 COPY . .
 
-# --- Stage 2: Self-Contained Publish ---
-# SENIOR FIX: Build for 'linux-musl-x64' so it carries its own engine
+#This compiles the application in Release mode and puts the output in /out.
 RUN dotnet publish src/cartservice.csproj -c Release \
     -o /out \
     --no-restore \
@@ -35,6 +38,8 @@ COPY --from=builder /out/appsettings.json .
 
 # Security: Set execution permissions and run as non-root UID
 RUN chmod +x ./cartservice
+
+#This runs the container with UID 1000 instead of root.
 USER 1000
 
 # Industry Standard: Environment-based port flexibility

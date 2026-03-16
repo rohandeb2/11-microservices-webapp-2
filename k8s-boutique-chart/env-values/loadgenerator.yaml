@@ -16,11 +16,11 @@ configData:
 # Locust (the tool inside) can be CPU intensive when simulating many users
 resources:
   requests:
-    cpu: 200m
-    memory: 128Mi
+    cpu: 250m
+    memory: 512Mi
   limits:
     cpu: 500m
-    memory: 256Mi
+    memory: 1Gi
 
 # --- Production Scaling Logic ---
 # We generally DO NOT autoscale the load generator. 
@@ -30,5 +30,14 @@ autoscaling:
 
 # --- Security & Identity ---
 serviceAccount:
-  create: true
+  create: false
+  name: "boutique-admin-sa"
   automountToken: false
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+livenessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10

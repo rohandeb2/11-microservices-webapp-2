@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-log-analyzer
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-log-analyzer
+  template:
+    metadata:
+      labels:
+        app: ai-log-analyzer
+    spec:
+      containers:
+      - name: analyzer
+        image: your-docker-repo/ai-log-analyzer:latest # The image from your Dockerfile
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - secretRef:
+            name: ai-log-analyzer-secret # This MUST match the target.name in your ExternalSecret

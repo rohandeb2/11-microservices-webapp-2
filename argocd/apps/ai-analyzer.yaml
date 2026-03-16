@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ai-log-analyzer
+  namespace: logging
+spec:
+  schedule: "*/15 * * * *"  # Runs every 15 minutes
+  concurrencyPolicy: Forbid # Prevents a new job from starting if the old one is still running
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          # IMPORTANT: Link to the IAM Role via the ServiceAccount
+          serviceAccountName: boutique-admin-sa 
+          containers:
+          - name: analyzer
+            image: <YOUR_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/boutique-app/ai-analyzer:latest
+            imagePullPolicy: Always
+            env:
+            - name: ELK_URL
+              value: "http://elasticsearch:9200"
+            # NEW: Inject the AI Key from Kubernetes Secrets
+            - name: AI_LOG_ANALYZER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-log-analyzer-secret
+                  key: AI_LOG_ANALYZER_KEY
+          restartPolicy: OnFailure
+
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: ai-log-analyzer-secret
+  namespace: logging
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secretsmanager # This should match your SecretStore name
+    kind: SecretStore
+  target:
+    name: ai-log-analyzer-secret # This is the name the CronJob looks for
+    creationPolicy: Owner
+  data:
+  - secretKey: AI_LOG_ANALYZER_KEY
+    remoteRef:
+      key: ai/log-analyzer # This matches your Terraform secret name
+      property: AI_LOG_ANALYZER_KEY
+  - secretKey: SLACK_WEBHOOK_URL
+    remoteRef:
+      key: ai/log-analyzer
+      property: SLACK_WEBHOOK_URL

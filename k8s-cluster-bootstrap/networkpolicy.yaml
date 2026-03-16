@@ -1,17 +1,19 @@
-# --- 1. The Global Lock (Security First) ---
-apiVersion: networking.k8s.io/v1
+# --- 1. Default Deny All Traffic ---
+apiVersion: networking.k8s.io/v1  
+#Use the networking API version v1 to understand and process this resource
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
   namespace: boutique-app
 spec:
-  podSelector: {} # Selects all pods
+  podSelector: {} #{} means select all pods in this namespace.
   policyTypes:
-  - Ingress
-  - Egress
+  - Ingress #controls incoming traffic to pods
+  - Egress  #controls outgoing traffic from pods
+            #🚨 Because no rules are defined, Kubernetes blocks everything.
+
 ---
-# --- 2. The DNS Lifeline (Crucial!) ---
-# Without this, pods cannot resolve "cartservice" or "rediscart" names.
+# --- 2. Allow DNS Resolution (CoreDNS in kube-system) ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -20,18 +22,20 @@ metadata:
 spec:
   podSelector: {}
   policyTypes:
-  - Egress
-  egress:
+  - Egress   #This policy only controls outgoing traffic.
+  egress:    #Defines allowed outgoing traffic.
   - to:
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.name: kube-system
+          kubernetes.io/metadata.name: kube-system #Allow traffic to kube-system namespace.This is where **CoreDNS runs.
     ports:
     - protocol: UDP
       port: 53
+    - protocol: TCP
+      port: 53
+
 ---
-# --- 3. The "Front Door" Access ---
-# Allows the AWS Load Balancer to talk to the Frontend
+# --- 3. Allow External Traffic to Frontend (via AWS Load Balancer) ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -40,33 +44,156 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: frontend
+      app.kubernetes.io/name: frontend #This policy applies only to frontend pods.
   policyTypes:
-  - Ingress
+  - Ingress        #Controls incoming traffic only
   ingress:
   - from:
     - ipBlock:
-        cidr: 0.0.0.0/0 # Open to the ALB
+        cidr: 0.0.0.0/0
     ports:
     - protocol: TCP
       port: 8080
-    
+
 ---
-# --- 4. Internal Microservice Communication ---
-# Allows services within the boutique-app namespace to communicate with each other
+# --- 4. Allow Internal Communication Between Microservices ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-internal-traffic
   namespace: boutique-app
 spec:
-  podSelector: {} # Applies to all pods in the namespace
+  podSelector: {}
   policyTypes:
   - Ingress
   - Egress
+
   ingress:
   - from:
-    - podSelector: {} # Allow ingress from any other pod in this namespace
+    - podSelector: {}  #Pods inside boutique-app can communicate with each other.
+
   egress:
   - to:
-    - podSelector: {} # Allow egress to any other pod in this namespace
+    - podSelector: {} #Pods can send traffic to any other pod in the namespace.
+    
+# We created 4 NetworkPolicies to:
+
+# 1️⃣ Block all traffic by default
+# 2️⃣ Allow DNS resolution  -->Without this, pods can't resolve service names like "cartservice" or "rediscart"
+# 3️⃣ Allow external users to access the frontend #-->Without this, the AWS Load Balancer cannot route traffic to the frontend pods.
+# 4️⃣ Allow internal communication between microservices 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# This ensures security + functionality in Kubernetes.
+# # --- 1. The Global Lock (Security First) ---
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: default-deny-all
+#   namespace: boutique-app
+# spec:
+#   podSelector: {} # Selects all pods
+#   policyTypes:
+#   - Ingress
+#   - Egress
+# ---
+# # --- 2. The DNS Lifeline (Crucial!) ---
+# # Without this, pods cannot resolve "cartservice" or "rediscart" names.
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: allow-dns
+#   namespace: boutique-app
+# spec:
+#   podSelector: {}
+#   policyTypes:
+#   - Egress
+#   egress:
+#   - to:
+#     - namespaceSelector:
+#         matchLabels:
+#           kubernetes.io/metadata.name: kube-system
+#     ports:
+#     - protocol: UDP
+#       port: 53
+# ---
+# # --- 3. The "Front Door" Access ---
+# # Allows the AWS Load Balancer to talk to the Frontend
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: allow-ingress-to-frontend
+#   namespace: boutique-app
+# spec:
+#   podSelector:
+#     matchLabels:
+#       app.kubernetes.io/name: frontend
+#   policyTypes:
+#   - Ingress
+#   ingress:
+#   - from:
+#     - ipBlock:
+#         cidr: 0.0.0.0/0 # Open to the ALB
+#     ports:
+#     - protocol: TCP
+#       port: 8080
+    
+# ---
+# # --- 4. Internal Microservice Communication ---
+# # Allows services within the boutique-app namespace to communicate with each other
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: allow-internal-traffic
+#   namespace: boutique-app
+# spec:
+#   podSelector: {} # Applies to all pods in the namespace
+#   policyTypes:
+#   - Ingress
+#   - Egress
+#   ingress:
+#   - from:
+#     - podSelector: {} # Allow ingress from any other pod in this namespace
+#   egress:
+#   - to:
+#     - podSelector: {} # Allow egress to any other pod in this namespace
+
+
+# NetworkPolicy only works if your cluster supports it.
+
+# Default EKS networking:
+
+# Amazon VPC CNI
+
+# To enforce policies you usually install:
+
+# Calico
+# or
+
+# Cilium
+
+# Example install:
+
+# kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+# ✅ How to Deploy
+# kubectl apply -f networkpolicy.yaml
+
+# Check:
+
+# kubectl get networkpolicy -n boutique-app
+
+

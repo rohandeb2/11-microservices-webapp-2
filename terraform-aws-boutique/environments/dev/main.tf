@@ -43,6 +43,7 @@ module "networking" {
   # certificate_arn is needed if your networking module handles CloudFront/ALB HTTPS
   certificate_arn = module.security.certificate_arn
   alb_dns_name = module.compute.alb_dns_name
+  waf_arn = module.security.waf_arn
 }
 
 # 3. Security Layer (The Guardrail)

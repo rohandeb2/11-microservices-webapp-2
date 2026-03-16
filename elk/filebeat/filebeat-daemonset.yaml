@@ -31,4 +31,4 @@ data:
       hosts: ["logstash.logging.svc.cluster.local:5044"]
       
     # Send Filebeat's own metrics to Elasticsearch
-    monitoring.enabled: false
+    monitoring.enabled: false 

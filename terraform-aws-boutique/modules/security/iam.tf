@@ -63,7 +63,8 @@ resource "aws_iam_policy" "app_permissions" {
         # CHANGE: Allow access to all secrets starting with 'boutique/'
         # This matches your 'boutique/production/redis' request
         # Resource = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:boutique*"
-        Resource = "*"
+        Resource = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:${var.project_name}*"
+        Resource = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:ai/*
       }
     ]
   })
@@ -74,33 +75,3 @@ resource "aws_iam_role_policy_attachment" "app_attach" {
   policy_arn = aws_iam_policy.app_permissions.arn
 }
 
-# --- IAM Role for Load Balancer Controller ---
-resource "aws_iam_role" "lbc_role" {
-  name = "AmazonEKSLoadBalancerControllerRole"
-
-  # The Trust Policy: Only the OIDC of your cluster can assume this role
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRoleWithWebIdentity"
-        Effect = "Allow"
-        Principal = {
-          Federated = "arn:aws:iam::889501007925:oidc-provider/${replace(data.aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}"
-        }
-        Condition = {
-          StringEquals = {
-            # Restrict this role ONLY to the specific service account in kube-system
-            "${replace(data.aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
-          }
-        }
-      }
-    ]
-  })
-}
-
-# --- Attach the Policy you created earlier ---
-resource "aws_iam_role_policy_attachment" "lbc_policy_attach" {
-  policy_arn = "arn:aws:iam::889501007925:policy/AWSLoadBalancerControllerIAMPolicy"
-  role       = aws_iam_role.lbc_role.name
-}

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+    # Senior Tip: Adding this label helps with network policies and monitoring
+    app.kubernetes.io/part-of: argocd

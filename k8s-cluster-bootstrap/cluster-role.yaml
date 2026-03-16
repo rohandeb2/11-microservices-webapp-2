@@ -1,3 +1,6 @@
+#We create this ClusterRole + ClusterRoleBinding in Kubernetes to give a  
+#ServiceAccount cluster-wide read access for monitoring and observability.
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -7,35 +10,51 @@ metadata:
     app.kubernetes.io/part-of: boutique-infrastructure
     app.kubernetes.io/managed-by: helm
     security.boutique.com/tier: monitoring
+    # These labels are mainly for: organization automation
 
-rules:
-# Core API Group: Safe read-only access to cluster topology
-- apiGroups: [""]
-  resources: ["nodes", "namespaces", "persistentvolumes", "pods", "services"]
-  verbs: ["get", "list", "watch"]
+rules: #This section defines what resources can be accessed and what actions are allowed.
+#Rule 1 – Core Kubernetes Resources
+- apiGroups: [""]     #"" means the core Kubernetes API group. eg: pod, secret, configmap
+  resources: ["nodes","namespaces","persistentvolumes","pods","services"]  #These are the resources that microservices can access.
+  verbs: ["get","list","watch"]
+  # get	read one resource
+  # list	list resources
+  # watch	watch for changes
 
-# Workload API Group: Visibility into how apps are running
-- apiGroups: ["apps"]
-  resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
-  verbs: ["get", "list", "watch"]
-  
-# Metrics/Auto-scaling: Crucial for your HPA to function
+#Rule 2 – Application Resources
+- apiGroups: ["apps"]  #apiGroups: ["apps"] tells Kubernetes that the RBAC rule should apply to resources in the apps API group
+  resources: ["deployments","daemonsets","statefulsets","replicasets"]
+  verbs: ["get","list","watch"]
+
+#Rule 3 – Autoscaling
 - apiGroups: ["autoscaling"]
   resources: ["horizontalpodautoscalers"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get","list","watch"]
 
 ---
+#A ClusterRoleBinding connects a ClusterRole to a user, group, or ServiceAccount.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: boutique-cluster-reader-binding
   labels:
     app.kubernetes.io/name: online-boutique
+
+
+#The ServiceAccount boutique-admin-sa in namespace boutique-app will receive the permissions.
 subjects:
-  - kind: ServiceAccount
-    name: cluster-admin-sa 
-    namespace: kube-system
+- kind: ServiceAccount
+  name: boutique-admin-sa
+  namespace: boutique-app
+
 roleRef:
   kind: ClusterRole
   name: boutique-cluster-reader
   apiGroup: rbac.authorization.k8s.io
+
+
+#   This configuration:
+
+# 1️⃣ Creates a ClusterRole with read-only cluster permissions
+# 2️⃣ Binds it to the ServiceAc count boutique-admin-sa
+# 3️⃣ Allows that account to monitor the entire Kubernetes cluster safely
